@@ -1,0 +1,391 @@
+:root {
+  --font-display: Trattatello, fantasy;
+  --font-ui: sans-serif;
+  --text-dark: black;
+  --text-light: white;
+  --accent: rgb(216, 176, 45);
+  --glass-bg: rgba(30,30,30,0.65);
+  --glass-border: rgba(255,255,255,0.15);
+}
+
+html, body {
+  cursor: url('Cheese.png') 2 2, auto;
+}
+body{
+  font-family: var(--font-display);
+  color: var(--text-dark);
+  margin:0;
+}
+.box {
+    /* background-image: url('barnyard.jpg'); */
+    background-color:rgb(27, 25, 23);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    
+}
+
+.window {
+  position: absolute; 
+  top: 100px;
+  left: 150px;
+  width: 420px;
+  height: auto;
+  
+  /* Glassmorphism Effect */
+  background: rgba(30, 30, 30, 0.65); 
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px); 
+  
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  color: #fff;
+  font-family: sans-serif;
+  overflow: hidden; /* Keeps content inside the rounded corners */
+  border-color:var(--glass-border);
+}
+
+/* Title Bar layout */
+.title-bar {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2); 
+  cursor: inherit;
+  user-select: none;
+}
+
+.control-btn {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: none;
+  cursor: inherit;
+}
+
+
+.close { background-color: #ff5f56; padding: 5px; margin: 4px;}
+.minimize { background-color: #ffbd2e; padding: 5px; margin: 4px;}
+.maximize { background-color: #27c93f; padding: 5px; margin: 4px;}
+
+.title-text {
+  flex-grow: 1;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  margin-right: 52px; 
+  font-family: Trattatello, fantasy;
+}
+
+.window-content video {
+  padding-bottom: 4px;
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.window-content{
+  padding: 15px;
+  position: relative;
+}
+
+.custom-controls{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: transparent;
+  padding: 4px 8px;
+}
+
+.header{
+  font-family: Trattatello, fantasy;
+  letter-spacing: 1px;
+  /* border-radius: 16px; */
+}
+
+
+#boot-screen {
+  position: fixed;
+  inset: 0;
+  background: rgb(27, 25, 23);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.6s ease;
+}
+
+.boot-content {
+  text-align: center;
+  
+}
+
+.boot-logo {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 24px;
+}
+
+.boot-bar-track {
+  width: 280px;
+  height: 8px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 0 auto 12px;
+}
+
+.boot-bar-fill {
+  width: 0%;
+  height: 100%;
+  background: rgb(177, 174, 0);
+  border-radius: 4px;
+  animation: boot-load 2.2s ease-out forwards;
+}
+
+@keyframes boot-load {
+  to { width: 100%; }
+}
+
+.boot-status {
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+#boot-screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+
+.widget{
+  position: fixed;
+  top: 84px;
+  right: 24px;
+  z-index:10;
+  width: 200px;
+  padding: 18px;
+
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  color: var(--text-light);
+  font-family:var(--font-ui);
+
+  user-select:none;
+  pointer-events:none;
+}
+
+.clock-face {
+  background: rgba(255,255,255,0.08);
+  border: 2px solid var(--glass-border);
+  position: relative;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  margin: 0 auto;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
+}
+
+.hour{
+  background: var(--text-light);
+}
+.minute{
+  background: var(--text-light);
+  opacity:0.85;
+}
+.second{
+  background: var(--accent);
+}
+
+.center-dot{
+  background: var(--text-light)
+
+}
+
+.digital-time{
+  color:var(--text-light);
+  opacity: 0.9;
+}
+
+.hand-hour, .hand-minute, .hand-second {
+  position: absolute;
+  bottom: 50%;
+  left: 50%;
+  transform-origin: bottom center;
+  border-radius: 4px;
+}
+.hand-hour {
+  width: 5px;
+  height: 42px;
+  margin-left: -2.5px;
+  background: var(--text-light);
+}
+.hand-minute{
+  width: 3px;
+  height: 58px;
+  margin-left: -1.5px;
+  background: var(--text-light);
+  opacity:0.85;
+}
+.hand-second{
+  width:1.5px;
+  height: 66px;
+  margin-left:-0.75;
+  background:var(--accent);
+}
+
+.bg-text{
+  width: 150px;
+  height: 150px;
+  padding: 12px;
+  top:50%;
+  left:50%;
+  text-align: center;
+  color: var(--text-light)
+}
+
+.bg-text-act{
+  position: fixed;
+  inset: 0;
+  font-weight:500;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow:#27c93f;
+  
+}
+
+#playPauseIcon {
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+
+#playPauseBtn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+
+
+.yt-badge {
+  position: absolute;
+  bottom: 3px;
+  right: 20px;
+  z-index: 10;
+
+}
+
+/* a dock for the app icons */
+
+.dock {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 14px;
+  padding: 10px 16px;
+  background: rgba(20, 20, 20, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+}
+
+.dock-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: white;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dock-icon:hover {
+  transform: translateY(-8px) scale(1.1);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.35);
+}
+
+.dock-icon img {
+  width: 26px;
+  height: 26px;
+}
+
+.fit{
+  width: 100px ;
+  height:100px;
+  object-fit:cover;
+  object-position:center;
+}
+
+.txtbg{
+  text-align: left;
+  padding-left: 12px;
+}
+
+.windowbgcontent {
+  padding: 15px;
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.txtbg {
+  width: 100%;
+  text-align: left;
+  padding-left: 12px;
+}
+
+.bg-remove-btn {
+  width: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  background: rgba(255,255,255,0.08) !important;
+  border-radius: 8px;
+  border: 1px dashed rgba(255,255,255,0.3) !important;
+}
+.bg-thumb-btn {
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.bg-thumb-btn:hover {
+  transform: translateY(-4px) scale(1.04);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.35);
+}
+
+.bg-thumb-btn:active {
+  transform: translateY(-1px) scale(0.98);
+}
