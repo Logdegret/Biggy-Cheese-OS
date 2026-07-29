@@ -1,16 +1,129 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BiggyOS</title>
+    <link rel="stylesheet" href="styles.css">   
+    
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="favicon.png"> 
+</head>
+<body class="box">
+    <div id="boot-screen">
+        <div class="boot-content">
+            <div class="boot-logo" style: font-family: Optima, sans-serif; font-size: 68px; font-weight: 100;>BiggyOS</div> 
+            <div class="boot-bar-track">
+                <div class="boot-bar-fill"></div>
+            </div>
+            <div class="boot-status" id="loadingJoker"></div>
+        </div>
+    </div>
+                
+    
+        
+    <div style="position: absolute; width: 100%; display: flex; backdrop-filter: blur(10px); background-color: rgba(0, 0, 0, 0.125); color: #fff; justify-content: space-between; gap: 32px;">
+        <p style="margin-left: 16px; font-weight: 700;  padding: 4px 12px; ">
+        BiggyOS
+        </p>
+        <p id="status-bar-text" style="margin-right: 16px; background-color: rgba(256, 256, 256, 0.25); padding: 4px 12px; border-radius: 16px;">
+    </div>
 
-<body>
-  <h1>Welcome to BIGGY CHEZ'S OS!</h1>
-  <h2>Introduction</h2>
-  <p>Hello this is my OS if you know you know!</p>
-  <a href=https://stardance.hackclub.com/missions/web-os-1>label</a>
-  <img style="width: 686px; height: 386px" src="./Charizard.JPG" />
+    <div class="bg-text">
+       <H1 class="bg-text-act"> BiggyOS </H1>
+    </div>
+    
 
-  <body style="background-color: #181818b9">
-  </body>
 
-</body>
+    <!-- Creating clock -->
+    <div class="widget" id="clockWidget">
+        <div class= "clock-face">
+            <div class="hand-hour" id="hourHand"></div>
+            <div class="hand-minute" id="minuteHand"></div>
+            <div class="hand-second" id="secondHand"></div>
+            <div class="center-dot"></div>
+        </div>
+        <div class="digital-time" id="digitalTime">--:--:--</div>
+    </div>
 
+
+    
+
+
+        
+            <!-- video  in the draggable window... -->
+                <div class="window" id="windowjs" style="display: none;">
+                    <div class="title-bar" >
+                        
+                        <button class="control-btn close" onclick="closeWindow('windowjs')"></button>
+                        <button class="control-btn minimize"></button>
+                        <button class="control-btn maximize"></button>
+                        <div class="title-text" >Youtube</div>
+                    </div>
+                        
+                
+                        <div class="window-content" >
+                            <video id="cheezVideo">
+                                <source src="cheez.mp4" type="video/mp4">
+                            </video>
+                            <div class="custom-controls" style: background-color: transparent;>
+                                <button id="playPauseBtn"><img id="playPauseIcon" src="play-buttton.png" alt="Play/Pause"></play-button></button>
+                                <input type="range" id="seekBar" value="0" min="1" max="100" step="0.1">
+                                <span id="timeDisplay">0:00 / 0:00</span>
+                                <button id="muteBtn">🔈</button>
+
+                                <div class="yt-badge">
+                    <a href="https://www.youtube.com/channel/UCdMN0m5hjlazL5wQzjadGsw" target="_blank" rel="noopener noreferrer">
+                    <img class="fill" src="yt.svg" alt="YouTube Logo"; style="width: 50px; height: 50px; "> 
+                    </a>
+                </div>
+                            </div>
+                   
+                        
+               
+                
+                </div> 
+                </div>
+                
+            <!-- Backgrounds window: content is built dynamically by renderBackgrounds() in app.js -->
+
+            <div class="window" id="windowbgjs" style="display: none;">
+                <div class="title-bar">
+                        
+                        <button class="control-btn close" onclick="closeWindow('windowbgjs')"></button>
+                        <button class="control-btn minimize"></button>
+                        <button class="control-btn maximize"></button>
+                        <div class="title-text">Backgrounds</div>
+                </div>
+                <div class="windowbgcontent" style: background-color: transparent;>
+                    <p class="txtbg">Choose background: </p>
+                </div>
+            </div>
+
+
+
+            <div class="dudewindow" id="windowdudejs" style="display: none;">
+                <div class="title-bar">
+
+                        <button class="control-btn close" onclick="closeWindow('windowdudejs')"></button>
+                        <button class="control-btn minimize"></button>
+                        <button class="control-btn maximize"></button>
+                        <div class="title-text">About Me!</div>
+                </div>
+                <div class="windowdudecontent" style: background-color: transparent;>
+                    <img class="me" src="me.jpeg" alt="Dude" class="dude-image">
+                    <p class="txtdude">My name is Logan! I'm a 14 year old in highschool and I like to develop.</p>
+                </div>
+            </div>
+
+    <div class="dock" id="appDock"></div>
+                
+
+
+                
+               
+                
+    
+    <script src="app.js"></script>
+</body>   
 </html>
