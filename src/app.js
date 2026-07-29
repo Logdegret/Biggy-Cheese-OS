@@ -70,6 +70,8 @@ function removeBackground() {
 dragElement(document.getElementById("windowjs"), document.querySelector("#windowjs .title-bar"));
 dragElement(document.getElementById("windowbgjs"), document.querySelector("#windowbgjs .title-bar"));
 // dragElement(document.getElementById("clockjs"));
+dragElement(document.getElementById("windowdudejs"), document.querySelector("#windowdudejs .title-bar"));
+
 
 
 function dragElement(element, handle) {
@@ -112,8 +114,9 @@ function dragElement(element, handle) {
 // ---- Modular app dock ----
 // Add/remove apps by editing this array only — renderDock() builds the bar from it.
 const apps = [
-  { id: "play",       icon: "play.png",       color: "#e0862e", action: () => openWindow("windowjs") },
-  { id: "background", icon: "background.png", color: "#7ba3e0", action: () => openWindow("windowbgjs") },
+  { id: "play",       icon: "play.png",       color: "#e0c52e", action: () => openWindow("windowjs") },
+  { id: "background", icon: "background.png", color: "#f04c4c", action: () => openWindow("windowbgjs") },
+  { id:"dude", icon:"dude.png", color:"#10902e", action: () => openWindow("windowdudejs") }
 ];
 
 function renderDock() {
@@ -141,10 +144,6 @@ function renderDock() {
 renderDock();
 
 
-// ---- Modular backgrounds list ----
-// Add more backgrounds by adding a line here — nothing else needs to change.
-// type: "image" shows a thumbnail that sets the background.
-// type: "none"  shows a "remove background" tile that clears it.
 const backgrounds = [
   { id: "none",     type: "none",  label: "Remove Background" },
   { id: "barnyard", type: "image", label: "Barnyard", file: "barnyard.jpg" },
@@ -156,7 +155,6 @@ function renderBackgrounds() {
   const container = document.querySelector("#windowbgjs .windowbgcontent");
   if (!container) return;
 
-  // clear out any old thumbnails (keep the "Choose background:" label)
   container.querySelectorAll(".bg-thumb").forEach(el => el.remove());
 
   backgrounds.forEach(bg => {
