@@ -116,7 +116,7 @@ function dragElement(element, handle) {
 const apps = [
   { id: "play",       icon: "play.png",       color: "#e0c52e", action: () => openWindow("windowjs") },
   { id: "background", icon: "background.png", color: "#f04c4c", action: () => openWindow("windowbgjs") },
-  { id:"dude", icon:"dude.png", color:"#10902e", action: () => openWindow("windowdudejs") }
+  { id:"dude", icon:"Dude.png", color:"#10902e", action: () => openWindow("windowdudejs") }
 ];
 
 function renderDock() {
