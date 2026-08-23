@@ -4,126 +4,446 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BiggyOS</title>
-    <link rel="stylesheet" href="styles.css">   
-    
+    <link rel="stylesheet" href="styles.css">
     <link rel="icon" href="favicon.png" type="image/png">
-    <link rel="apple-touch-icon" href="favicon.png"> 
+    <link rel="apple-touch-icon" href="favicon.png">
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 </head>
 <body class="box">
+    <!-- Boot Screen Section -->
     <div id="boot-screen">
         <div class="boot-content">
-            <div class="boot-logo" style: font-family: Optima, sans-serif; font-size: 68px; font-weight: 100;>BiggyOS</div> 
+            <div class="boot-logo">BiggyOS</div>
             <div class="boot-bar-track">
                 <div class="boot-bar-fill"></div>
             </div>
             <div class="boot-status" id="loadingJoker"></div>
+            <button class="boot-enter-btn" id="bootEnterBtn">Click to Enter</button>
         </div>
+
+        <button class="boot-skip-btn" id="bootSkipBtn">Skip Cinema...</button>
+
+        <div class="door-seam" id="doorSeam"></div>
+        <div class="boot-door left" id="bootDoorLeft"></div>
+        <div class="boot-door right" id="bootDoorRight"></div>
+
+        <audio id="doorAudio" src="door-open.mp3" preload="auto"></audio>
     </div>
-                
-    
-        
+
+    <!-- Status Bar / Header (Always Visible) -->
     <div style="position: absolute; width: 100%; display: flex; backdrop-filter: blur(10px); background-color: rgba(0, 0, 0, 0.125); color: #fff; justify-content: space-between; gap: 32px;">
-        <p style="margin-left: 16px; font-weight: 700;  padding: 4px 12px; ">
-        BiggyOS
-        </p>
-        <p id="status-bar-text" style="margin-right: 16px; background-color: rgba(256, 256, 256, 0.25); padding: 4px 12px; border-radius: 16px;">
+        <p style="margin-left: 16px; font-weight: 700; padding: 4px 12px;"> BiggyOS </p>
+        <p id="status-bar-text" style="margin-right: 16px; background-color: rgba(255, 255, 255, 0.25); padding: 4px 12px; border-radius: 16px;"></p>
     </div>
 
+    <!-- Background/Greeting Screen -->
     <div class="bg-text">
-       <H1 class="bg-text-act"> BiggyOS </H1>
+        <h1 class="bg-text-act"> BiggyOS </h1>
     </div>
-    
 
-
-    <!-- Creating clock -->
-    <div class="widget" id="clockWidget">
-        <div class= "clock-face">
-            <div class="hand-hour" id="hourHand"></div>
-            <div class="hand-minute" id="minuteHand"></div>
-            <div class="hand-second" id="secondHand"></div>
-            <div class="center-dot"></div>
+    <!-- Desktop Widgets -->
+    <div class="widget-stack" id="widgetStack">
+        <div class="widget" id="clockWidget">
+            <div class="clock-face">
+                <div class="hand-hour" id="hourHand"></div>
+                <div class="hand-minute" id="minuteHand"></div>
+                <div class="hand-second" id="secondHand"></div>
+                <div class="center-dot"></div>
+            </div>
+            <div class="digital-time" id="digitalTime">--:--:--</div>
         </div>
-        <div class="digital-time" id="digitalTime">--:--:--</div>
+
+        <div class="widget weather-widget" id="weatherWidget" style="display: none;">
+            <div class="weather-widget-icon" id="weatherWidgetIcon">⛅</div>
+            <div class="weather-widget-info">
+                <div class="weather-widget-temp" id="weatherWidgetTemp">--&deg;</div>
+                <div class="weather-widget-city" id="weatherWidgetCity">Loading...</div>
+            </div>
+        </div>
+
+        <div class="widget music-widget" id="musicWidget" style="display: none;">
+            <button class="music-widget-play" id="musicWidgetPlay">▶</button>
+            <div class="music-widget-title" id="musicWidgetTitle">No track playing</div>
+        </div>
+
+        <div class="widget meme-widget" id="memeWidget" style="display: none;">
+            <img class="meme-widget-img" id="memeWidgetImg" alt="Meme">
+            <button class="meme-widget-refresh" id="memeWidgetRefresh" title="New meme">🔄</button>
+        </div>
     </div>
 
-
-    
-
-
-        
-            <!-- video  in the draggable window... -->
-                <div class="window" id="windowjs" style="display: none;">
-                    <div class="title-bar" >
-                        
-                        <button class="control-btn close" onclick="closeWindow('windowjs')"></button>
-                        <button class="control-btn minimize"></button>
-                        <button class="control-btn maximize"></button>
-                        <div class="title-text" >Youtube</div>
-                    </div>
-                        
-                
-                        <div class="window-content" >
-                            <video id="cheezVideo">
-                                <source src="cheez.mp4" type="video/mp4">
-                            </video>
-                            <div class="custom-controls" style: background-color: transparent;>
-                                <button id="playPauseBtn"><img id="playPauseIcon" src="play-buttton.png" alt="Play/Pause"></play-button></button>
-                                <input type="range" id="seekBar" value="0" min="1" max="100" step="0.1">
-                                <span id="timeDisplay">0:00 / 0:00</span>
-                                <button id="muteBtn">🔈</button>
-
-                                <div class="yt-badge">
+    <!-- Video Player Window -->
+    <div class="window" id="windowjs" style="display: none;">
+        <div class="title-bar">
+            <button class="control-btn close" onclick="closeWindow('windowjs')"></button>
+            <button class="control-btn minimize" onclick="minimizeWindow('windowjs')"></button>
+            <button class="control-btn maximize" onclick="maximizeWindow('windowjs')"></button>
+            <div class="title-text">Youtube</div>
+        </div>
+        <div class="window-content">
+            <video id="cheezVideo">
+                <source src="cheez.mp4" type="video/mp4">
+            </video>
+            <div class="custom-controls">
+                <button id="playPauseBtn"><img id="playPauseIcon" src="play-buttton.png" alt="Play/Pause"></button>
+                <input type="range" id="seekBar" value="0" min="0" max="100" step="0.1">
+                <span id="timeDisplay">0:00 / 0:00</span>
+                <button id="muteBtn">🔈</button>
+                <div class="yt-badge">
                     <a href="https://www.youtube.com/channel/UCdMN0m5hjlazL5wQzjadGsw" target="_blank" rel="noopener noreferrer">
-                    <img class="fill" src="yt.svg" alt="YouTube Logo"; style="width: 50px; height: 50px; "> 
+                        <img src="yt.svg" alt="YouTube Logo" style="width: 50px; height: 50px;">
                     </a>
                 </div>
-                            </div>
-                   
-                        
-               
-                
-                </div> 
-                </div>
-                
-            <!-- Backgrounds window: content is built dynamically by renderBackgrounds() in app.js -->
+            </div>
+        </div>
+        <div class="resize-handle" data-dir="tl"></div>
+        <div class="resize-handle" data-dir="tr"></div>
+        <div class="resize-handle" data-dir="bl"></div>
+        <div class="resize-handle" data-dir="br"></div>
+    </div>
 
-            <div class="window" id="windowbgjs" style="display: none;">
-                <div class="title-bar">
-                        
-                        <button class="control-btn close" onclick="closeWindow('windowbgjs')"></button>
-                        <button class="control-btn minimize"></button>
-                        <button class="control-btn maximize"></button>
-                        <div class="title-text">Backgrounds</div>
+    <!-- Backgrounds Window -->
+    <div class="window" id="windowbgjs" style="display: none;">
+        <div class="title-bar">
+            <button class="control-btn close" onclick="closeWindow('windowbgjs')"></button>
+            <button class="control-btn minimize" onclick="minimizeWindow('windowbgjs')"></button>
+            <button class="control-btn maximize" onclick="maximizeWindow('windowbgjs')"></button>
+            <div class="title-text">Backgrounds</div>
+        </div>
+        <div class="windowbgcontent">
+            <p class="txtbg">Choose background: </p>
+        </div>
+        <div class="resize-handle" data-dir="tl"></div>
+        <div class="resize-handle" data-dir="tr"></div>
+        <div class="resize-handle" data-dir="bl"></div>
+        <div class="resize-handle" data-dir="br"></div>
+    </div>
+
+    <!-- About Me Window -->
+    <div class="dudewindow" id="windowdudejs" style="display: none;">
+        <div class="title-bar">
+            <button class="control-btn close" onclick="closeWindow('windowdudejs')"></button>
+            <button class="control-btn minimize" onclick="minimizeWindow('windowdudejs')"></button>
+            <button class="control-btn maximize" onclick="maximizeWindow('windowdudejs')"></button>
+            <div class="title-text">About Me!</div>
+        </div>
+        <div class="windowdudecontent">
+            <img class="me" src="me.jpeg" alt="Dude">
+            <p class="txtdude">My name is Logan! I'm a 14 year old in highschool and I like to develop. I am currently working on my IOS app called Plateu. Go check it out!</p>
+        </div>
+        <div class="resize-handle" data-dir="tl"></div>
+        <div class="resize-handle" data-dir="tr"></div>
+        <div class="resize-handle" data-dir="bl"></div>
+        <div class="resize-handle" data-dir="br"></div>
+    </div>
+
+    <!-- Game Window -->
+    <div class="gamewindow" id="windowgamejs" style="display: none;">
+        <div class="title-bar">
+            <button class="control-btn close" onclick="closeWindow('windowgamejs')"></button>
+            <button class="control-btn minimize" onclick="minimizeWindow('windowgamejs')"></button>
+            <button class="control-btn maximize" onclick="maximizeWindow('windowgamejs')"></button>
+            <div class="title-text">Monkey Mart!</div>
+        </div>
+        <div class="windowgamecontent" style="background-color: rgb(89, 149, 0);">
+            <div class="bggamestart">
+                <button id="opengame" class="bggamebutton">Start Game</button>
+                <iframe id="gameFile" src="https://monkeymartfree.com/play/monkey-mart/" title="Monkey Mart" frameborder="0" allow="autoplay; fullscreen" style="display: none;"></iframe>
+            </div>
+        </div>
+        <div class="resize-handle" data-dir="tl"></div>
+        <div class="resize-handle" data-dir="tr"></div>
+        <div class="resize-handle" data-dir="bl"></div>
+        <div class="resize-handle" data-dir="br"></div>
+    </div>
+
+    <!-- Meme Window (Uses PyScript) -->
+    <div class="memewindow" id="windowmemejs" style="display: none;">
+        <div class="title-bar">
+            <button class="control-btn close" onclick="closeWindow('windowmemejs')"></button>
+            <button class="control-btn minimize" onclick="minimizeWindow('windowmemejs')"></button>
+            <button class="control-btn maximize" onclick="maximizeWindow('windowmemejs')"></button>
+            <div class="title-text">Daily Meme</div>
+        </div>
+        <div class="windowmemecontent" style="align-items: center; justify-content: center; display: flex; flex-direction: column;">
+            <div id="memeContainer">
+                <img id="meme-img" width="250" style="border-radius: 16px; margin-bottom: 16px;">
+                <p id="meme-status" class="txtmeme"></p>
+                <py-script>
+                    import js
+                    import random
+                    from pyodide.http import pyfetch
+
+                    # Layer 1: only pull from subreddits that are moderated as clean.
+                    # The bare /gimme endpoint draws from a random pool that includes
+                    # edgy subs, so naming the source is the single biggest filter.
+                    SAFE_SUBREDDITS = [
+                        "wholesomememes",
+                        "memes",
+                        "dankmemes",
+                        "me_irl",
+                        "funny",
+                        "AnimalsBeingDerps",
+                        "ProgrammerHumor",
+                    ]
+
+                    # Layer 3: reject anything whose title trips these, even if Reddit
+                    # never flagged the post. Substring match, so "sexy" catches "sex".
+                    BLOCKED_WORDS = [
+                        "nsfw", "porn", "porno", "sex", "nude", "naked", "boob", "tit",
+                        "ass", "butt", "thicc", "onlyfans", "hentai", "milf", "horny",
+                        "orgy", "penis", "vagina", "dick", "cock", "cum", "slut", "whore",
+                        "fuck", "shit", "bitch", "bastard", "nigg", "fag", "retard", "rape",
+                        "kys", "suicide", "kill yourself", "self harm", "overdose",
+                        "gore", "corpse", "murder", "dead body", "drug", "meth", "cocaine",
+                    ]
+
+                    # Only real image files - blocks video/gallery links that render broken.
+                    ALLOWED_EXTENSIONS = (".jpg", ".jpeg", ".png", ".gif", ".webp")
+
+                    def is_clean(meme):
+                        # Layer 2: trust Reddit's own flags first.
+                        if meme.get("nsfw", False) or meme.get("spoiler", False):
+                            return False
+
+                        url = (meme.get("url") or "").lower()
+                        if not url.startswith("https://"):
+                            return False
+                        if not url.endswith(ALLOWED_EXTENSIONS):
+                            return False
+
+                        haystack = (meme.get("title") or "").lower()
+                        for word in BLOCKED_WORDS:
+                            if word in haystack:
+                                return False
+                        return True
+
+                    def set_status(text):
+                        status = js.document.getElementById("meme-status")
+                        if status:
+                            status.textContent = text
+
+                    async def get_meme(event=None):
+                        set_status("Finding a clean one...")
+
+                        # Ask for 25 at a time and filter locally - one round trip
+                        # usually leaves plenty of survivors to pick from.
+                        for attempt in range(3):
+                            subreddit = random.choice(SAFE_SUBREDDITS)
+                            try:
+                                response = await pyfetch(
+                                    "https://meme-api.com/gimme/" + subreddit + "/25"
+                                )
+                                data = await response.json()
+                            except Exception as err:
+                                js.console.log("Meme fetch failed: " + str(err))
+                                continue
+
+                            candidates = data.get("memes") or []
+                            clean = [m for m in candidates if is_clean(m)]
+                            js.console.log(
+                                "r/" + subreddit + ": " + str(len(clean))
+                                + " clean of " + str(len(candidates))
+                            )
+
+                            if clean:
+                                pick = random.choice(clean)
+                                img = js.document.getElementById("meme-img")
+                                img.src = pick["url"]
+                                img.alt = pick.get("title", "Meme")
+                                set_status("")
+                                return
+
+                        set_status("No clean memes right now - try again!")
+                </py-script>
+            </div>
+            <button py-click="get_meme" class="fetch" id="fetchMemeBtn">Fetch Meme</button>
+        </div>
+        <div class="resize-handle" data-dir="tl"></div>
+        <div class="resize-handle" data-dir="tr"></div>
+        <div class="resize-handle" data-dir="bl"></div>
+        <div class="resize-handle" data-dir="br"></div>
+    </div>
+
+    <!-- To-Do List Window -->
+    <div class="todowindow" id="windowtodojs" style="display: none;">
+        <div class="title-bar">
+            <button class="control-btn close" onclick="closeWindow('windowtodojs')"></button>
+            <button class="control-btn minimize" onclick="minimizeWindow('windowtodojs')"></button>
+            <button class="control-btn maximize" onclick="maximizeWindow('windowtodojs')"></button>
+            <div class="title-text">To-Do List</div>
+        </div>
+        <div class="windowtodocontent">
+            <input class="inputtodo" type="text" id="taskInput" placeholder="Enter a task">
+            <button class="addtask" id="addTaskBtn">Add Task</button>
+            <ul id="taskList"></ul>
+            <p class="todo-empty" id="todoEmpty">Nothing to do. Go eat some cheese.</p>
+        </div>
+        <div class="resize-handle" data-dir="tl"></div>
+        <div class="resize-handle" data-dir="tr"></div>
+        <div class="resize-handle" data-dir="bl"></div>
+        <div class="resize-handle" data-dir="br"></div>
+    </div>
+
+
+    <div class="termwindow" id="terminal-window" style="display: none;">
+        <div class="term-title-bar">
+            <button class="control-btn close" onclick="closeWindow('terminal-window')"></button>
+            <button class="control-btn minimize" onclick="minimizeWindow('terminal-window')"></button>
+            <button class="control-btn maximize" onclick="maximizeWindow('terminal-window')"></button>
+            <div class="title-text">Terminal</div>
+        </div>
+        <div class="window-content terminal-body" id="terminal-output" onclick="document.getElementById('terminal-input').focus()">
+            <div class="terminal-log-container">
+                <div id="terminal-log"></div>
+                <div class="terminal-input-line">
+                <span class="terminal-prompt">biggy@os:~$</span>
+                <input type="text" id="terminal-input" autocomplete="off" spellcheck="false">
+            </div>
+        </div>
+    </div>
+        <div class="resize-handle" data-dir="tl"></div>
+        <div class="resize-handle" data-dir="tr"></div>
+        <div class="resize-handle" data-dir="bl"></div>
+        <div class="resize-handle" data-dir="br"></div>
+    </div>
+
+
+
+    <div class="noteswindow" id="noteswindowjs" style="display: none;">
+        <div class="title-bar">
+            <button class="control-btn close" onclick="closeWindow('noteswindowjs')"></button>
+            <button class="control-btn minimize" onclick="minimizeWindow('noteswindowjs')"></button>
+            <button class="control-btn maximize" onclick="maximizeWindow('noteswindowjs')"></button>
+            <div class="title-text">Notes</div>
+        </div>
+        <div class="noteswindowcontent" id="noteswindowcontentjs">
+            <textarea class="notes-textarea" id="notesTextarea" placeholder="Jot somethin' down..."></textarea>
+        </div>
+        <div class="resize-handle" data-dir="tl"></div>
+        <div class="resize-handle" data-dir="tr"></div>
+        <div class="resize-handle" data-dir="bl"></div>
+        <div class="resize-handle" data-dir="br"></div>
+    </div>
+
+    <div class="storewindow" id="storewindowjs" style="display: none;">
+        <div class="title-bar">
+            <button class="control-btn close" onclick="closeWindow('storewindowjs')"></button>
+            <button class="control-btn minimize" onclick="minimizeWindow('storewindowjs')"></button>
+            <button class="control-btn maximize" onclick="maximizeWindow('storewindowjs')"></button>
+            <div class="title-text">Store</div>
+        </div>
+        <div class="storewindowcontent" id="storewindowcontentjs">
+
+        </div>
+        <div class="resize-handle" data-dir="tl"></div>
+        <div class="resize-handle" data-dir="tr"></div>
+        <div class="resize-handle" data-dir="bl"></div>
+        <div class="resize-handle" data-dir="br"></div>
+    </div>
+
+    <div class="weatherwindow" id="windowweatherjs" style="display: none;">
+        <div class="title-bar">
+            <button class="control-btn close" onclick="closeWindow('windowweatherjs')"></button>
+            <button class="control-btn minimize" onclick="minimizeWindow('windowweatherjs')"></button>
+            <button class="control-btn maximize" onclick="maximizeWindow('windowweatherjs')"></button>
+            <div class="title-text">Weather</div>
+        </div>
+        <div class="weatherwindowcontent" id="weatherwindowcontentjs">
+            <div class="weather-search-row">
+                <input type="text" id="weatherCityInput" class="weather-city-input" placeholder="Search city...">
+                <button id="weatherSearchBtn" class="weather-search-btn">Go</button>
+            </div>
+
+            <div class="weather-current">
+                <div class="weather-label">BIGGY WEATHER</div>
+                <div class="weather-main">
+                    <span class="weather-icon-big" id="weatherIconBig">⛅</span>
+                    <span class="weather-temp-big" id="weatherTempBig">--&deg;</span>
                 </div>
-                <div class="windowbgcontent" style: background-color: transparent;>
-                    <p class="txtbg">Choose background: </p>
+                <div class="weather-condition" id="weatherCondition">Loading...</div>
+                <div class="weather-city" id="weatherCityName">--</div>
+                <div class="weather-hilo" id="weatherHiLo">H:--&deg; L:--&deg;</div>
+            </div>
+
+            <div class="weather-stats">
+                <div class="weather-stat">
+                    <div class="weather-stat-value" id="weatherHumidity">--%</div>
+                    <div class="weather-stat-label">Humidity</div>
+                </div>
+                <div class="weather-stat">
+                    <div class="weather-stat-value" id="weatherWind">--</div>
+                    <div class="weather-stat-label">Wind</div>
+                </div>
+                <div class="weather-stat">
+                    <div class="weather-stat-value" id="weatherFeelsLike">--&deg;</div>
+                    <div class="weather-stat-label">Feels Like</div>
                 </div>
             </div>
 
+            <div class="weather-forecast-label">7-DAY FORECAST</div>
+            <div class="weather-forecast-list" id="weatherForecastList"></div>
+        </div>
+        <div class="resize-handle" data-dir="tl"></div>
+        <div class="resize-handle" data-dir="tr"></div>
+        <div class="resize-handle" data-dir="bl"></div>
+        <div class="resize-handle" data-dir="br"></div>
+    </div>
 
 
-            <div class="dudewindow" id="windowdudejs" style="display: none;">
-                <div class="title-bar">
 
-                        <button class="control-btn close" onclick="closeWindow('windowdudejs')"></button>
-                        <button class="control-btn minimize"></button>
-                        <button class="control-btn maximize"></button>
-                        <div class="title-text">About Me!</div>
-                </div>
-                <div class="windowdudecontent" style: background-color: transparent;>
-                    <img class="me" src="me.jpeg" alt="Dude" class="dude-image">
-                    <p class="txtdude">My name is Logan! I'm a 14 year old in highschool and I like to develop.</p>
-                </div>
+    <div class="musicwindow" id="windowmusicjs" style="display: none;">
+        <div class="title-bar">
+            <button class="control-btn close" onclick="closeWindow('windowmusicjs')"></button>
+            <button class="control-btn minimize" onclick="minimizeWindow('windowmusicjs')"></button>
+            <button class="control-btn maximize" onclick="maximizeWindow('windowmusicjs')"></button>
+            <div class="title-text">Music</div>
+        </div>
+        <div class="musicwindowcontent" id="musicwindowcontentjs">
+            <audio id="musicAudio" preload="metadata"></audio>
+
+            <div class="music-now-playing">
+                <div class="music-art">🎵</div>
+                <div class="music-track-title" id="musicTrackTitle">No Track Selected</div>
             </div>
+            <div class="music-transport">
+                <button id="musicPrevBtn" class="music-transport-btn">⏮</button>
+            <button id="musicPlayBtn" class="music-transport-btn music-play-btn">▶</button>
+            <button id="musicNextBtn" class="music-transport-btn">⏭</button>
+        </div>
 
+        <div class="music-seek-row">
+            <span id="musicTimeCurrent">0:00</span>
+            <input type="range" id="musicSeekBar" value="0" min="0" max="100" step="0.1">
+            <span id="musicTimeDuration">0:00</span>
+        </div>
+
+        <div class="music-volume-row">
+            <span>🔈</span>
+            <input type="range" id="musicVolumeBar" value="70" min="0" max="100">
+        </div>
+
+        <div class="music-playlist-header">
+            <span>Playlist</span>
+            <button id="musicAddBtn" class="music-add-btn">+ Add</button>
+            <input type="file" id="musicFileInput" accept="audio/*" multiple style="display:none;">
+        </div>
+            <div class="music-playlist" id="musicPlaylist"></div>
+        </div>
+    <div class="resize-handle" data-dir="tl"></div>
+    <div class="resize-handle" data-dir="tr"></div>
+    <div class="resize-handle" data-dir="bl"></div>
+    <div class="resize-handle" data-dir="br"></div>
+    </div>
+
+
+    <!-- context menu -->
+
+    <div class="context-menu" id="contextMenu" style="display: none;"></div>
+
+    <!-- Dock / Global Scripts -->
     <div class="dock" id="appDock"></div>
-                
-
-
-                
-               
-                
-    
     <script src="app.js"></script>
-</body>   
+</body>
 </html>
