@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  
+</head>
+<body>
+  <h1>Meme fetch test</h1>
+  <button py-click="get_meme">Get meme</button>
+  <br><br>
+  <img id="meme-img" width="400">
+
+  <py-script>
+import js
+from pyodide.http import pyfetch
+import asyncio
+
+async def get_meme(event=None):
+    response = await pyfetch("https://meme-api.com/gimme")
+    data = await response.json()
+    img = js.document.getElementById("meme-img")
+    img.src = data["url"]
+  </py-script>
+</body>
+</html>

@@ -15,6 +15,7 @@ const playPauseIcon = document.getElementById('playPauseIcon');
 const seekBar = document.getElementById('seekBar');
 const timeDisplay = document.getElementById('timeDisplay');
 const muteBtn = document.getElementById('muteBtn');
+const muteIcon = document.getElementById('muteIcon');
 
 playPauseBtn.addEventListener('click', () => {
   if (video.paused) {
@@ -37,7 +38,7 @@ seekBar.addEventListener('input', () => {
 
 muteBtn.addEventListener('click', () => {
   video.muted = !video.muted;
-  muteBtn.textContent = video.muted ? '🔇' : '🔈';
+  muteIcon.src = video.muted ? 'sound-off.png' : 'sound-on.png';
 });
 
 function formatTime(s) {
@@ -57,13 +58,11 @@ function registerWindowState(windowId, handlers) {
   windowStateHandlers[windowId] = handlers;
 }
 
-// Read state out of a window just before it gets hidden.
 function captureWindowState(windowId) {
   const win = document.getElementById(windowId);
   if (!win) return;
 
   const state = {
-    // Cheap insurance: some browsers drop scroll offsets on display:none.
     scroll: [win, ...win.querySelectorAll('*')]
       .filter(el => el.scrollTop || el.scrollLeft)
       .map(el => [el, el.scrollTop, el.scrollLeft]),
@@ -76,7 +75,6 @@ function captureWindowState(windowId) {
   savedWindowState.set(windowId, state);
 }
 
-// Put it back, after the window is visible again so layout values stick.
 function restoreWindowState(windowId) {
   const win = document.getElementById(windowId);
   const state = savedWindowState.get(windowId);
@@ -98,11 +96,7 @@ function restoreWindowState(windowId) {
   savedWindowState.delete(windowId);
 }
 
-// Windows built as a flex column (title bar + content that fills the rest,
-// so resizing actually grows the content) need `display: flex`, not the
-// default 'block' - otherwise the inline style below overrides their CSS
-// and flex:1 on the content silently does nothing.
-const flexWindows = new Set(['terminal-window', 'windowgamejs', 'windowjs', 'windowbgjs', 'windowdudejs', 'windowmemejs', 'windowweatherjs', 'windowmusicjs']);
+const flexWindows = new Set(['terminal-window', 'windowgamejs', 'windowbiggycraftjs', 'windowjs', 'windowbgjs', 'windowdudejs', 'windowmemejs', 'windowweatherjs', 'windowmusicjs', 'windowcalcjs', 'windowpaintjs', 'windowbrowserjs']);
 
 function openWindow(windowId) {
   const target = document.getElementById(windowId);
@@ -132,9 +126,6 @@ function closeWindow(windowId) {
   const targetWindow = document.getElementById(windowId);
   if (targetWindow) {
     targetWindow.style.display = 'none';
-    // Unlike minimize, close means "start over" - drop any manual move,
-    // resize, or maximize so the window reopens at its CSS default box
-    // instead of wherever it was last left.
     targetWindow.style.top = '';
     targetWindow.style.left = '';
     targetWindow.style.width = '';
@@ -142,9 +133,10 @@ function closeWindow(windowId) {
     targetWindow.classList.remove('maximized');
     delete targetWindow.dataset.prevBox;
   }
-  // A closed window starts fresh next time, so drop anything we stashed.
   minimizedWindows.delete(windowId);
   savedWindowState.delete(windowId);
+  if (windowId === 'windowbrowserjs' && typeof resetBrowser === 'function') resetBrowser();
+  if (windowId === 'windowbiggycraftjs' && typeof resetBiggyCraft === 'function') resetBiggyCraft();
   if (windowId === 'windowjs' && !video.paused) {
     video.pause();
     playPauseIcon.src = 'play-buttton.png';
@@ -152,11 +144,6 @@ function closeWindow(windowId) {
   syncDock();
 }
 
-// Video: pause on minimize, resume on restore.
-// Note we deliberately do NOT reassign currentTime here. Pausing leaves the
-// playhead where it is, so the position survives on its own - and re-seeking
-// would break playback on any host that doesn't serve HTTP range requests,
-// where every seek clamps back to 0.
 registerWindowState('windowjs', {
   save() {
     const wasPlaying = !video.paused;
@@ -174,8 +161,6 @@ registerWindowState('windowjs', {
   }
 });
 
-// Game: the iframe keeps running while hidden, so remember whether the user
-// had already hit Start and put the window back on that screen.
 registerWindowState('windowgamejs', {
   save(win) {
     const frame = win.querySelector('#gameFile');
@@ -190,8 +175,6 @@ registerWindowState('windowgamejs', {
   }
 });
 
-// Toggle a window between its normal size and full screen.
-// Stashes the inline top/left/width/height so restoring puts it back where it was.
 function maximizeWindow(windowId) {
   const target = document.getElementById(windowId);
   if (!target) return;
@@ -219,29 +202,25 @@ function maximizeWindow(windowId) {
   bringToFront(target);
 }
 
-// Set the page background from the dock or the Backgrounds window
+const CURRENT_BG_KEY = "biggyos-background";
+
 function setBackground(imagePath) {
   document.body.style.backgroundImage = `url('${imagePath}')`;
   document.body.style.backgroundSize = "cover";
   document.body.style.backgroundPosition = "center";
   document.body.style.backgroundRepeat = "no-repeat";
+  localStorage.setItem(CURRENT_BG_KEY, imagePath);
 }
 
-// Remove any custom background and revert to the default .box background
 function removeBackground() {
   document.body.style.backgroundImage = "";
+  localStorage.removeItem(CURRENT_BG_KEY);
 }
 
 
-
-
-
-
-// time to make this draggable...
 dragElement(document.getElementById("windowgamejs"), document.querySelector("#windowgamejs .title-bar"));
 dragElement(document.getElementById("windowjs"), document.querySelector("#windowjs .title-bar"));
 dragElement(document.getElementById("windowbgjs"), document.querySelector("#windowbgjs .title-bar"));
-// dragElement(document.getElementById("clockjs"));
 dragElement(document.getElementById("windowdudejs"), document.querySelector("#windowdudejs .title-bar"));
 dragElement(document.getElementById("windowmemejs"), document.querySelector("#windowmemejs .title-bar"));
 dragElement(document.getElementById("windowtodojs"), document.querySelector("#windowtodojs .title-bar"));
@@ -250,8 +229,11 @@ dragElement(document.getElementById("noteswindowjs"), document.querySelector("#n
 dragElement(document.getElementById("storewindowjs"), document.querySelector("#storewindowjs .title-bar"))
 dragElement(document.getElementById("windowweatherjs"), document.querySelector("#windowweatherjs .title-bar"))
 dragElement(document.getElementById("windowmusicjs"), document.querySelector("#windowmusicjs .title-bar"))
+dragElement(document.getElementById("windowcalcjs"), document.querySelector("#windowcalcjs .title-bar"))
+dragElement(document.getElementById("windowpaintjs"), document.querySelector("#windowpaintjs .title-bar"))
+dragElement(document.getElementById("windowbrowserjs"), document.querySelector("#windowbrowserjs .title-bar"))
+dragElement(document.getElementById("windowbiggycraftjs"), document.querySelector("#windowbiggycraftjs .title-bar"))
 
-// ...and resizable from all four corner grips.
 makeResizable(document.getElementById("windowgamejs"));
 makeResizable(document.getElementById("windowjs"));
 makeResizable(document.getElementById("windowbgjs"));
@@ -263,7 +245,10 @@ makeResizable(document.getElementById("noteswindowjs"));
 makeResizable(document.getElementById("storewindowjs"));
 makeResizable(document.getElementById("windowweatherjs"));
 makeResizable(document.getElementById("windowmusicjs"));
-
+makeResizable(document.getElementById("windowcalcjs"));
+makeResizable(document.getElementById("windowpaintjs"));
+makeResizable(document.getElementById("windowbrowserjs"));
+makeResizable(document.getElementById("windowbiggycraftjs"));
 
 
 function dragElement(element, handle) {
@@ -305,12 +290,6 @@ function dragElement(element, handle) {
   }
 }
 
-// Drag the bottom-right corner grip to resize a window. minWidth/minHeight
-// stop it from being shrunk small enough to lose the title bar controls.
-// Wires up every corner grip inside `element`. Each handle's data-dir
-// ("tl"/"tr"/"bl"/"br") says which edges it drags - dragging from the top
-// or left has to shrink/grow width or height in the opposite direction AND
-// shift top/left so the opposite corner stays anchored in place.
 function makeResizable(element, minWidth = 220, minHeight = 140) {
   if (!element) return;
   const handles = element.querySelectorAll(".resize-handle");
@@ -330,7 +309,7 @@ function makeResizable(element, minWidth = 220, minHeight = 140) {
 
     function startResizing(e) {
       e.preventDefault();
-      e.stopPropagation(); // don't let this bubble into dragElement's title-bar logic
+      e.stopPropagation();
       bringToFront(element);
       setIframesInteractive(false);
 
@@ -376,8 +355,6 @@ function makeResizable(element, minWidth = 220, minHeight = 140) {
   });
 }
 
-// Layering windows with z-index//
-// Start above the clock widget (z-index 10) so windows always layer over it.
 let highestZ = 20;
 function bringToFront(windowId) {
   if(!windowId) return;
@@ -387,16 +364,12 @@ function bringToFront(windowId) {
 }
 
 
-
-
-// Inline SVG so the Weather app doesn't need its own icon asset on disk.
 const WEATHER_ICON =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E" +
   "%3Ccircle cx='9' cy='8' r='4' fill='%23FFD54A'/%3E" +
   "%3Cpath d='M7 19a4 4 0 010-8 5 5 0 019.6-1.5A3.5 3.5 0 0116.5 19H7z' fill='%23FFFFFF'/%3E" +
   "%3C/svg%3E";
 
-// Same trick for the Music app's icon.
 const MUSIC_ICON =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E" +
   "%3Cpath d='M9 17V5l11-2v12' stroke='%23FFFFFF' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E" +
@@ -404,11 +377,28 @@ const MUSIC_ICON =
   "%3Ccircle cx='17.5' cy='15.5' r='2.5' fill='%23FFFFFF'/%3E" +
   "%3C/svg%3E";
 
-// ---- Modular app dock ----
-// Add/remove apps by editing this array only — renderDock() builds the bar from it.
-// windowId ties each icon to its window so syncDock() can show a running dot.
-// `installable: true` means the app only shows up in the dock once installed
-// from the Store (see installApp/uninstallApp) — everything else is always present.
+const CALC_ICON =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E" +
+  "%3Crect x='4' y='2' width='16' height='20' rx='2' fill='none' stroke='%23FFFFFF' stroke-width='1.6'/%3E" +
+  "%3Crect x='7' y='5' width='10' height='4' fill='%23FFFFFF'/%3E" +
+  "%3Cg fill='%23FFFFFF'%3E%3Ccircle cx='8.5' cy='13' r='1.2'/%3E%3Ccircle cx='12' cy='13' r='1.2'/%3E" +
+  "%3Ccircle cx='15.5' cy='13' r='1.2'/%3E%3Ccircle cx='8.5' cy='17' r='1.2'/%3E" +
+  "%3Ccircle cx='12' cy='17' r='1.2'/%3E%3Ccircle cx='15.5' cy='17' r='1.2'/%3E%3C/g%3E" +
+  "%3C/svg%3E";
+
+const PAINT_ICON =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E" +
+  "%3Cpath d='M4 17.5L15 6.5l2.5 2.5L6.5 20H4z' fill='%23FFFFFF'/%3E" +
+  "%3Cpath d='M16.5 5l2.5 2.5 1.2-1.2a1.8 1.8 0 00-2.5-2.5z' fill='%23FFD54A'/%3E" +
+  "%3C/svg%3E";
+
+const BROWSER_ICON =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E" +
+  "%3Ccircle cx='12' cy='12' r='9' fill='none' stroke='%23FFFFFF' stroke-width='1.7'/%3E" +
+  "%3Cellipse cx='12' cy='12' rx='4' ry='9' fill='none' stroke='%23FFFFFF' stroke-width='1.4'/%3E" +
+  "%3Cpath d='M3.5 9h17M3.5 15h17' stroke='%23FFFFFF' stroke-width='1.4'/%3E" +
+  "%3C/svg%3E";
+
 const apps = [
   { id: "play",   name:"VideoMeme",    icon: "play.png",       color: "#e0c52e", windowId: "windowjs" },
   { id: "background", name:"Backgrounds", icon: "background.png", color: "#f04c4c", windowId: "windowbgjs" },
@@ -417,13 +407,31 @@ const apps = [
   { id: "meme",   name:"Memes",    icon: "meme.png",       color: "#062cc1", windowId: "windowmemejs" },
   { id: "todo",   name:"Biggy Todo",    icon: "todo.png",       color: "#e05832", windowId: "windowtodojs" },
   { id: "terminal", name:"Terminal", icon: "terminal.png", color:"black", windowId:"terminal-window"},
-  {id: "notes", name:"notes", icon: "note.png", color:"#f2dc79", windowId:"noteswindowjs"},
+  {id: "notes", name:"notes", icon: "note.png", color:"#e0c759", windowId:"noteswindowjs"},
   { id: "weather", name: "Weather", icon: WEATHER_ICON, color: "#3b7dd8", windowId: "windowweatherjs", installable: true },
-  {id: "apps", icon: "app.png", color:"#b1b0b0", windowId:"storewindowjs"},
-  { id: "music", name: "Music", icon: MUSIC_ICON, color: "#e1158c", windowId: "windowmusicjs", installable: true }
+  {id: "apps", icon: "app.png", color:"#c4c3c3", windowId:"storewindowjs"},
+  { id: "music", name: "Music", icon: "music.png", color: "#ff19d5", windowId: "windowmusicjs", installable: true },
+  { id: "calc", name: "Calculator", icon: "calc.jpg", color: "#4a4a4a", windowId: "windowcalcjs", installable: true },
+  { id: "paint", name: "Biggy Paint", icon: "pencil.jpg" , color: "#6c009b", windowId: "windowpaintjs", installable: true },
+  { id: "browser", name: "Biggy Browser", icon: "browser.jpg" , color: "#25c7c7", windowId: "windowbrowserjs", installable: true },
+  { id: "biggycraft", name: "BiggyCraft", icon: "minecraft.png" , color: "#65380c", windowId: "windowbiggycraftjs", installable: true }
 ];
 
 const INSTALLED_APPS_KEY = "biggyos-installed-apps";
+const WEATHER_COORDS_KEY = "biggyos-weather-coords";
+
+function requestWeatherLocation() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      localStorage.setItem(WEATHER_COORDS_KEY, JSON.stringify({
+        lat: pos.coords.latitude,
+        lon: pos.coords.longitude
+      }));
+    },
+    () => {}
+  );
+}
 
 function getInstalledApps() {
   try {
@@ -456,11 +464,10 @@ function uninstallApp(appId) {
   renderStore();
 }
 
-// Fake download progress before an app actually installs - applies to every
-// app.installable entry automatically, so any future installable app (e.g.
-// a music player) gets this for free without touching this function.
 function downloadThenInstall(app, btn) {
-  const duration = 1400 + Math.random() * 1600; // 1.4-3s, just for flavor
+  if (app.id === 'weather') requestWeatherLocation();
+
+  const duration = 1400 + Math.random() * 1600;
   const start = Date.now();
 
   btn.disabled = true;
@@ -469,9 +476,6 @@ function downloadThenInstall(app, btn) {
   const fill = btn.querySelector('.store-download-fill');
   const label = btn.querySelector('.store-download-label');
 
-  // setInterval, not requestAnimationFrame - rAF pauses while the tab is
-  // backgrounded, which would freeze the "download" if the user switches
-  // tabs mid-install. setInterval keeps ticking (throttled, but it moves).
   const intervalId = setInterval(() => {
     const pct = Math.min(100, Math.round(((Date.now() - start) / duration) * 100));
     fill.style.width = pct + '%';
@@ -484,7 +488,6 @@ function downloadThenInstall(app, btn) {
   }, 60);
 }
 
-// Light up the dot under any icon whose window is open or minimized.
 function syncDock() {
   apps.forEach(app => {
     const iconEl = document.getElementById(`dock-${app.id}`);
@@ -515,7 +518,6 @@ function renderDock() {
 
     iconEl.innerHTML = `<img src="${app.icon}" alt="${app.id}">`;
 
-    // Clicking a running icon that's minimized restores it; otherwise opens it.
     iconEl.addEventListener("click", () => {
       if (typeof app.action === "function") {
         app.action();
@@ -537,8 +539,74 @@ const backgrounds = [
   { id: "none",     type: "none",  label: "Remove Background" },
   { id: "barnyard", type: "image", label: "Barnyard", file: "barnyard.jpg" },
   { id: "moo",      type: "image", label: "Moo",      file: "moo.jpg" },
-  
+  { id: "4k1", type:"image",label:"spiderman", file: "bg3.jpg"},
+  { id:"4k2", type:"image", label:"mountains", file:"bg4.jpg"}
 ];
+
+const CUSTOM_BGS_KEY = "biggyos-custom-backgrounds";
+const MAX_CUSTOM_BG_BYTES = 4 * 1024 * 1024;
+
+function getCustomBackgrounds() {
+  try {
+    return JSON.parse(localStorage.getItem(CUSTOM_BGS_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
+function setCustomBackgrounds(list) {
+  try {
+    localStorage.setItem(CUSTOM_BGS_KEY, JSON.stringify(list));
+  } catch {
+    alert("Out of storage - remove a background or two first.");
+  }
+}
+
+function addCustomBackground(file) {
+  if (!file.type.startsWith("image/")) {
+    alert("That's not an image. GIF, PNG, JPG or WEBP only.");
+    return;
+  }
+  if (file.size > MAX_CUSTOM_BG_BYTES) {
+    alert("That file's too chunky (4MB max).");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const list = getCustomBackgrounds();
+    list.push({ id: "custom-" + Date.now(), label: file.name, file: reader.result });
+    setCustomBackgrounds(list);
+    renderBackgrounds();
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeCustomBackground(id) {
+  const removed = getCustomBackgrounds().find(bg => bg.id === id);
+  setCustomBackgrounds(getCustomBackgrounds().filter(bg => bg.id !== id));
+  if (removed && localStorage.getItem(CURRENT_BG_KEY) === removed.file) removeBackground();
+  renderBackgrounds();
+}
+
+function makeBgThumb(bg) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "barnyardimg bg-thumb";
+
+  const button = document.createElement("button");
+  button.className = "bg-thumb-btn";
+  button.title = bg.label;
+
+  const img = document.createElement("img");
+  img.className = "fit";
+  img.src = bg.file;
+  img.alt = bg.label;
+  button.appendChild(img);
+  button.addEventListener("click", () => setBackground(bg.file));
+
+  wrapper.appendChild(button);
+  return wrapper;
+}
 
 function renderBackgrounds() {
   const container = document.querySelector("#windowbgjs .windowbgcontent");
@@ -547,32 +615,65 @@ function renderBackgrounds() {
   container.querySelectorAll(".bg-thumb").forEach(el => el.remove());
 
   backgrounds.forEach(bg => {
-    const wrapper = document.createElement("div");
-    wrapper.className = "barnyardimg bg-thumb";
-
-  const button = document.createElement("button");
-  button.className = "bg-thumb-btn";
-  button.title = bg.label;
-
     if (bg.type === "none") {
+      const wrapper = document.createElement("div");
+      wrapper.className = "barnyardimg bg-thumb";
+
+      const button = document.createElement("button");
       button.className = "bg-thumb-btn bg-remove-btn";
+      button.title = bg.label;
       button.textContent = "🚫";
       button.addEventListener("click", removeBackground);
-    } else {
-      const img = document.createElement("img");
-      img.className = "fit";
-      img.src = bg.file;
-      img.alt = bg.label;
-      button.appendChild(img);
-      button.addEventListener("click", () => setBackground(bg.file));
+
+      wrapper.appendChild(button);
+      container.appendChild(wrapper);
+      return;
     }
 
-    wrapper.appendChild(button);
+    container.appendChild(makeBgThumb(bg));
+  });
+
+  getCustomBackgrounds().forEach(bg => {
+    const wrapper = makeBgThumb(bg);
+    wrapper.classList.add("custom");
+
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "bg-custom-remove";
+    removeBtn.textContent = "✕";
+    removeBtn.title = "Delete this background";
+    removeBtn.addEventListener("click", () => removeCustomBackground(bg.id));
+    wrapper.appendChild(removeBtn);
+
     container.appendChild(wrapper);
   });
+
+  const addWrapper = document.createElement("div");
+  addWrapper.className = "barnyardimg bg-thumb";
+
+  const addBtn = document.createElement("button");
+  addBtn.className = "bg-thumb-btn bg-add-btn";
+  addBtn.title = "Add your own image or GIF";
+  addBtn.innerHTML = "+<small>image / gif</small>";
+
+  const picker = document.createElement("input");
+  picker.type = "file";
+  picker.accept = "image/*,image/gif";
+  picker.style.display = "none";
+  picker.addEventListener("change", () => {
+    if (picker.files[0]) addCustomBackground(picker.files[0]);
+    picker.value = "";
+  });
+
+  addBtn.addEventListener("click", () => picker.click());
+  addWrapper.appendChild(addBtn);
+  addWrapper.appendChild(picker);
+  container.appendChild(addWrapper);
 }
 
 renderBackgrounds();
+
+const savedBackground = localStorage.getItem(CURRENT_BG_KEY);
+if (savedBackground) setBackground(savedBackground);
 
 
 const ratJokes = [
@@ -618,8 +719,6 @@ const randomJoke = ratJokes[Math.floor(Math.random() * ratJokes.length)];
 document.getElementById("status-bar-text").textContent = randomJoke;
 
 
-
-
 window.addEventListener("DOMContentLoaded", () => {
   const bootScreen = document.getElementById("boot-screen");
   const bootContent = document.querySelector(".boot-content");
@@ -642,9 +741,9 @@ window.addEventListener("DOMContentLoaded", () => {
     "Please Wait, No Stay!! 🙏"
   ];
 
-  const bootDuration = 1800 + Math.random() * 800; // ms
+  const bootDuration = 1800 + Math.random() * 800;
 
-  let jokeIndex = Math.floor(Math.random() * loadingJokes.length); // random starting point too
+  let jokeIndex = Math.floor(Math.random() * loadingJokes.length);
   function cycleJoke() {
     loadingJoker.textContent = loadingJokes[jokeIndex % loadingJokes.length];
     jokeIndex++;
@@ -652,23 +751,19 @@ window.addEventListener("DOMContentLoaded", () => {
   cycleJoke();
   const jokeInterval = setInterval(cycleJoke, 650 + Math.random() * 150);
 
-  // after the fake load finishes, stop the jokes and reveal the enter button
   setTimeout(() => {
     clearInterval(jokeInterval);
     loadingJoker.textContent = "Ready.";
     enterBtn.classList.add("visible");
   }, bootDuration);
 
-  // clank ~0-1s, door slide ~1s onward - tuned to door-open.mp3's waveform
   const CLANK_END = 1.0;
   const FALLBACK_DURATION = 5;
 
-  // slow creak that only really commits to opening in the last stretch,
-  // then shoves the rest of the way in a hard final push
   function easeCreakThenPush(t) {
     return t < 0.75
-      ? (t / 0.75) * 0.22               // slow, almost-stalled creep
-      : 0.22 + Math.pow((t - 0.75) / 0.25, 2) * 0.78; // hard push at the end
+      ? (t / 0.75) * 0.22
+      : 0.22 + Math.pow((t - 0.75) / 0.25, 2) * 0.78;
   }
 
   let rafId = null;
@@ -699,7 +794,10 @@ window.addEventListener("DOMContentLoaded", () => {
     if (rafId) cancelAnimationFrame(rafId);
     doorAudio.pause();
     bootScreen.classList.add("hidden");
-    setTimeout(() => bootScreen.remove(), 600);
+    setTimeout(() => {
+      bootScreen.remove();
+      document.dispatchEvent(new CustomEvent("biggyos:ready"));
+    }, 600);
   }
 
   skipBtn.addEventListener("click", removeBoot);
@@ -713,16 +811,14 @@ window.addEventListener("DOMContentLoaded", () => {
 
     bootScreen.classList.add("shaking");
     doorSeam.classList.add("lit");
-    skipBtn.classList.add("visible"); // only appears once the doors are opening
+    skipBtn.classList.add("visible");
 
     rafId = requestAnimationFrame(driveDoors);
 
     doorAudio.addEventListener("ended", removeBoot, { once: true });
-    // fallback in case audio fails to load/play
     setTimeout(removeBoot, 6000);
   });
 });
-
 
 
 function updateClock(){
@@ -753,7 +849,6 @@ function tickClock(){
 tickClock();
 
 
-
 document.addEventListener('DOMContentLoaded', () =>{
   const taskInput = document.getElementById('taskInput');
   const addTaskBtn = document.getElementById('addTaskBtn');
@@ -761,7 +856,6 @@ document.addEventListener('DOMContentLoaded', () =>{
 
   const emptyMsg = document.getElementById('todoEmpty');
 
-  // Hide the placeholder line as soon as there's at least one task.
   const updateEmptyMsg = () => {
     if (emptyMsg) {
       emptyMsg.style.display = taskList.children.length ? 'none' : 'block';
@@ -784,7 +878,6 @@ document.addEventListener('DOMContentLoaded', () =>{
       listItem.classList.toggle('completed', checkbox.checked);
     });
 
-    // textContent, not innerHTML — a task like "<b>hi" should render as typed.
     const label = document.createElement('span');
     label.className = 'task-text';
     label.textContent = taskText;
@@ -834,7 +927,10 @@ const windowAliases = {
   creator: 'windowdudejs',
   game: 'windowgamejs',
   meme: 'windowmemejs',
-  todo: 'windowtodojs'
+  todo: 'windowtodojs',
+  calc: 'windowcalcjs',
+  paint: 'windowpaintjs',
+  browser: 'windowbrowserjs'
 };
 
 function initTerminal() {
@@ -922,7 +1018,7 @@ function runTerminalCommand(raw) {
   printToTerminal('clear');
   printToTerminal('  -clear the terminal');
   printToTerminal('open [window]');
-  printToTerminal('  -open: video, backgrounds, creator, game, meme, todo');
+  printToTerminal('  -open: video, backgrounds, creator, game, meme, todo, calc, paint, browser');
   break;
 
     case 'about':
@@ -1056,7 +1152,6 @@ function renderStore() {
 renderStore();
 
 
-// ---- Weather app (Open-Meteo - free, no API key) ----
 document.addEventListener('DOMContentLoaded', () => {
   const cityInput = document.getElementById('weatherCityInput');
   const searchBtn = document.getElementById('weatherSearchBtn');
@@ -1113,8 +1208,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('weatherWind').textContent = Math.round(current.wind_speed_10m) + ' km/h';
     document.getElementById('weatherFeelsLike').textContent = Math.round(current.apparent_temperature) + '°';
 
-    // Mirror into the desktop widget too, so it stays live even with the
-    // Weather window closed.
     const widgetIcon = document.getElementById('weatherWidgetIcon');
     const widgetTemp = document.getElementById('weatherWidgetTemp');
     const widgetCity = document.getElementById('weatherWidgetCity');
@@ -1191,16 +1284,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter') search();
   });
 
-  // initial load: last-searched city > geolocation > default city
   const savedCity = localStorage.getItem(WEATHER_CITY_KEY);
+  const savedCoords = JSON.parse(localStorage.getItem(WEATHER_COORDS_KEY) || 'null');
   if (savedCity) {
     cityInput.value = savedCity;
     loadWeatherForCity(savedCity);
-  } else if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => loadWeatherForCoords(pos.coords.latitude, pos.coords.longitude, 'Current Location'),
-      () => loadWeatherForCity('New York')
-    );
+  } else if (savedCoords) {
+    loadWeatherForCoords(savedCoords.lat, savedCoords.lon, 'Current Location');
   } else {
     loadWeatherForCity('New York');
   }
@@ -1265,8 +1355,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
     else audio.pause();
   });
 
-  // The widget's mini play button just proxies the real one - reuses the
-  // exact same play/pause/first-track logic instead of duplicating it.
   if (widgetPlayBtn) {
     widgetPlayBtn.addEventListener('click', () => playBtn.click());
   }
@@ -1320,10 +1408,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 const contextMenu = document.getElementById('contextMenu');
 
-// ---- Optional desktop widgets ----
-// Weather/Music/Meme start hidden (see their `style="display: none;"` in
-// index.html) and only appear once added from the right-click menu -
-// getAddedWidgets() persists the choice so it survives a reload.
+
 const WIDGET_IDS = ['weatherWidget', 'musicWidget', 'memeWidget'];
 const WIDGET_LABELS = { weatherWidget: 'Weather', musicWidget: 'Music', memeWidget: 'Meme' };
 const ADDED_WIDGETS_KEY = 'biggyos-added-widgets';
@@ -1343,7 +1428,7 @@ function setAddedWidgets(list) {
 function showWidget(widgetId) {
   const el = document.getElementById(widgetId);
   if (!el) return;
-  el.style.display = ''; // fall back to the class's own display:flex
+  el.style.display = '';
   const added = getAddedWidgets();
   if (!added.includes(widgetId)) {
     added.push(widgetId);
@@ -1358,7 +1443,6 @@ function hideWidget(widgetId) {
   setAddedWidgets(getAddedWidgets().filter(id => id !== widgetId));
 }
 
-// Restore whichever widgets were added last time.
 document.addEventListener('DOMContentLoaded', () => {
   getAddedWidgets().forEach(id => {
     const el = document.getElementById(id);
@@ -1424,10 +1508,6 @@ document.addEventListener('keydown', (e) => {
 });
 
 
-// ---- Meme widget ----
-// The meme image is set entirely from Python (PyScript's get_meme sets
-// img.src directly), so rather than duplicate that fetch/filter logic in
-// JS, just mirror whatever src the real #meme-img ends up with.
 document.addEventListener('DOMContentLoaded', () => {
   const memeImg = document.getElementById('meme-img');
   const widgetImg = document.getElementById('memeWidgetImg');
@@ -1440,7 +1520,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   new MutationObserver(syncWidgetImage).observe(memeImg, { attributes: true, attributeFilter: ['src'] });
-  syncWidgetImage(); // in case a meme was already fetched before this ran
+  syncWidgetImage();
 
   refreshBtn.addEventListener('click', () => fetchBtn.click());
 });
@@ -1451,3 +1531,649 @@ function setIframesInteractive(interactive) {
   });
 }
 
+(function () {
+  const TUTORIAL_SEEN_KEY = 'biggyos-tutorial-seen';
+
+  const steps = [
+    {
+      target: null,
+      title: 'Right-Click Menu',
+      text: 'Right-click anywhere on the desktop to pull up a quick menu of shortcuts.',
+    },
+    {
+      target: () => document.getElementById('dock-terminal'),
+      title: 'Terminal',
+      text: 'This opens the Terminal — poke around and try a few commands.',
+      placement: 'top',
+    },
+    {
+      target: () => document.getElementById('dock-apps'),
+      title: 'App Store',
+      text: 'Grab more apps here, like Weather and Music.',
+      placement: 'top',
+    },
+  ];
+
+  let scrim, spotlight, popup, currentStep = -1;
+
+  function build() {
+    scrim = document.createElement('div');
+    scrim.id = 'tutorialScrim';
+
+    spotlight = document.createElement('div');
+    spotlight.id = 'tutorialSpotlight';
+
+    popup = document.createElement('div');
+    popup.id = 'tutorialPopup';
+    popup.innerHTML = `
+      <div class="tutorial-popup-title"></div>
+      <div class="tutorial-popup-text"></div>
+      <div class="tutorial-popup-footer">
+        <div class="tutorial-popup-dots"></div>
+        <div class="tutorial-popup-actions">
+          <button class="tutorial-btn tutorial-skip">Skip</button>
+          <button class="tutorial-btn tutorial-next">Next</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(scrim);
+    document.body.appendChild(spotlight);
+    document.body.appendChild(popup);
+
+    scrim.addEventListener('click', (e) => e.stopPropagation());
+    popup.querySelector('.tutorial-skip').addEventListener('click', endTutorial);
+    popup.querySelector('.tutorial-next').addEventListener('click', () => {
+      if (currentStep >= steps.length - 1) { endTutorial(); return; }
+      showStep(currentStep + 1);
+    });
+
+    window.addEventListener('resize', () => { if (currentStep >= 0) render(); });
+  }
+
+  function render() {
+    const step = steps[currentStep];
+    const targetEl = step.target ? step.target() : null;
+
+    if (targetEl) {
+      const r = targetEl.getBoundingClientRect();
+      const pad = 10;
+      spotlight.style.left = (r.left - pad) + 'px';
+      spotlight.style.top = (r.top - pad) + 'px';
+      spotlight.style.width = (r.width + pad * 2) + 'px';
+      spotlight.style.height = (r.height + pad * 2) + 'px';
+      spotlight.style.borderRadius = '16px';
+    } else {
+      spotlight.style.left = '50%';
+      spotlight.style.top = '50%';
+      spotlight.style.width = '0px';
+      spotlight.style.height = '0px';
+      spotlight.style.borderRadius = '50%';
+    }
+
+    popup.querySelector('.tutorial-popup-title').textContent = step.title;
+    popup.querySelector('.tutorial-popup-text').textContent = step.text;
+
+    const dots = popup.querySelector('.tutorial-popup-dots');
+    dots.innerHTML = '';
+    steps.forEach((_, i) => {
+      const dot = document.createElement('span');
+      dot.className = 'tutorial-dot' + (i === currentStep ? ' active' : '');
+      dots.appendChild(dot);
+    });
+
+    popup.querySelector('.tutorial-next').textContent =
+      currentStep === steps.length - 1 ? 'Done' : 'Next';
+
+    positionPopup(targetEl, step.placement);
+  }
+
+  function positionPopup(targetEl, placement) {
+    const pw = popup.offsetWidth;
+    const ph = popup.offsetHeight;
+    const margin = 18;
+    let left, top;
+
+    if (!targetEl) {
+      left = (window.innerWidth - pw) / 2;
+      top = (window.innerHeight - ph) / 2;
+    } else {
+      const r = targetEl.getBoundingClientRect();
+      left = r.left + r.width / 2 - pw / 2;
+      if (placement === 'top') {
+        top = r.top - ph - margin;
+        if (top < 8) top = r.bottom + margin;
+      } else {
+        top = r.bottom + margin;
+      }
+    }
+
+    left = Math.max(12, Math.min(left, window.innerWidth - pw - 12));
+    top = Math.max(12, Math.min(top, window.innerHeight - ph - 12));
+
+    popup.style.left = left + 'px';
+    popup.style.top = top + 'px';
+  }
+
+  function showStep(i) {
+    currentStep = i;
+    render();
+  }
+
+  function endTutorial() {
+    currentStep = -1;
+    if (scrim) scrim.remove();
+    if (spotlight) spotlight.remove();
+    if (popup) popup.remove();
+    scrim = spotlight = popup = null;
+    localStorage.setItem(TUTORIAL_SEEN_KEY, '1');
+  }
+
+  function startTutorial() {
+    if (!scrim) build();
+    showStep(0);
+  }
+
+  document.addEventListener('biggyos:ready', () => {
+    if (!localStorage.getItem(TUTORIAL_SEEN_KEY)) startTutorial();
+  });
+
+  window.startTutorial = startTutorial;
+})();
+
+document.addEventListener('DOMContentLoaded', () => {
+  const display = document.getElementById('calcDisplay');
+  const keys = document.getElementById('calcKeys');
+  if (!display || !keys) return;
+
+  const layout = [
+    ['C', 'op'], ['←', 'op'], ['%', 'op'], ['÷', 'op'],
+    ['7', ''], ['8', ''], ['9', ''], ['×', 'op'],
+    ['4', ''], ['5', ''], ['6', ''], ['−', 'op'],
+    ['1', ''], ['2', ''], ['3', ''], ['+', 'op'],
+    ['0', 'wide'], ['.', ''], ['=', 'equals']
+  ];
+
+  let current = '0';
+  let previous = null;
+  let pendingOp = null;
+  let justEvaluated = false;
+
+  function show() {
+    display.textContent = current;
+  }
+
+  function doMath(a, b, op) {
+    if (op === '+') return a + b;
+    if (op === '−') return a - b;
+    if (op === '×') return a * b;
+    if (op === '÷') return b === 0 ? NaN : a / b;
+    return b;
+  }
+
+  function inputDigit(d) {
+    if (justEvaluated) { current = '0'; justEvaluated = false; }
+    if (d === '.' && current.includes('.')) return;
+    current = (current === '0' && d !== '.') ? d : current + d;
+  }
+
+  function chooseOp(op) {
+    if (pendingOp !== null && !justEvaluated) evaluate();
+    previous = parseFloat(current);
+    pendingOp = op;
+    justEvaluated = true;
+  }
+
+  function evaluate() {
+    if (pendingOp === null || previous === null) return;
+    const result = doMath(previous, parseFloat(current), pendingOp);
+    current = isNaN(result) ? 'Nope' : String(parseFloat(result.toPrecision(12)));
+    previous = null;
+    pendingOp = null;
+    justEvaluated = true;
+  }
+
+  function press(label) {
+    if (current === 'Nope' && label !== 'C') current = '0';
+
+    if (/^[0-9.]$/.test(label)) inputDigit(label);
+    else if (label === 'C') { current = '0'; previous = null; pendingOp = null; }
+    else if (label === '←') current = current.length > 1 ? current.slice(0, -1) : '0';
+    else if (label === '%') current = String(parseFloat(current) / 100);
+    else if (label === '=') evaluate();
+    else chooseOp(label);
+
+    show();
+  }
+
+  layout.forEach(([label, className]) => {
+    const btn = document.createElement('button');
+    btn.className = 'calc-key ' + className;
+    btn.textContent = label;
+    btn.addEventListener('click', () => press(label));
+    keys.appendChild(btn);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    const win = document.getElementById('windowcalcjs');
+    if (!win || win.style.display === 'none') return;
+
+    const map = { '/': '÷', '*': '×', '-': '−', 'Enter': '=', 'Backspace': '←', 'Escape': 'C' };
+    const key = map[e.key] || e.key;
+    if (/^[0-9.]$/.test(key) || ['+', '−', '×', '÷', '=', '←', 'C', '%'].includes(key)) {
+      e.preventDefault();
+      press(key);
+    }
+  });
+
+  show();
+});
+
+
+document.addEventListener('DOMContentLoaded', () => {
+  const canvas = document.getElementById('paintCanvas');
+  const swatchRow = document.getElementById('paintSwatches');
+  const colorInput = document.getElementById('paintColor');
+  const sizeInput = document.getElementById('paintSize');
+  const brushPreview = document.getElementById('paintBrushPreview');
+  const eraserBtn = document.getElementById('paintEraserBtn');
+  const clearBtn = document.getElementById('paintClearBtn');
+  const saveBtn = document.getElementById('paintSaveBtn');
+  if (!canvas) return;
+
+  const PAPER = '#f6ecd4';
+
+  const palette = [
+    ['#1b1917', 'Ink'],
+    ['#d8b02d', 'Cheddar'],
+    ['#f2dc79', 'Rind'],
+    ['#e05832', 'Hot Sauce'],
+    ['#2ea043', 'Mold'],
+    ['#3b7dd8', 'Blue Cheese'],
+    ['#8a8578', 'Rat Fur'],
+    ['#f04c4c', 'Ketchup']
+  ];
+
+  const ctx = canvas.getContext('2d');
+  let drawing = false;
+  let erasing = false;
+
+  function updateBrushDot() {
+    brushPreview.style.setProperty('--brush-size', sizeInput.value + 'px');
+    brushPreview.style.setProperty('--brush-color', erasing ? PAPER : colorInput.value);
+  }
+
+  function pickColor(hex) {
+    colorInput.value = hex;
+    erasing = false;
+    eraserBtn.classList.remove('active');
+    swatchRow.querySelectorAll('.paint-swatch').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.color === hex);
+    });
+    updateBrushDot();
+  }
+
+  palette.forEach(([hex, name]) => {
+    const btn = document.createElement('button');
+    btn.className = 'paint-swatch';
+    btn.style.backgroundColor = hex;
+    btn.dataset.color = hex;
+    btn.title = name;
+    btn.addEventListener('click', () => pickColor(hex));
+    swatchRow.appendChild(btn);
+  });
+
+  function fitCanvas() {
+    const { width, height } = canvas.getBoundingClientRect();
+    if (!width || !height) return;
+
+    const snapshot = document.createElement('canvas');
+    snapshot.width = canvas.width;
+    snapshot.height = canvas.height;
+    if (canvas.width && canvas.height) snapshot.getContext('2d').drawImage(canvas, 0, 0);
+
+    canvas.width = Math.round(width);
+    canvas.height = Math.round(height);
+    ctx.fillStyle = PAPER;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(snapshot, 0, 0);
+
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+  }
+
+  function pointAt(e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+
+  function start(e) {
+    drawing = true;
+    const p = pointAt(e);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    draw(e);
+  }
+
+  function draw(e) {
+    if (!drawing) return;
+    const p = pointAt(e);
+    ctx.strokeStyle = erasing ? PAPER : colorInput.value;
+    ctx.lineWidth = sizeInput.value;
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+  }
+
+  function stop() {
+    drawing = false;
+  }
+
+  canvas.addEventListener('pointerdown', start);
+  canvas.addEventListener('pointermove', draw);
+  document.addEventListener('pointerup', stop);
+
+  colorInput.addEventListener('input', () => pickColor(colorInput.value));
+  sizeInput.addEventListener('input', updateBrushDot);
+
+  eraserBtn.addEventListener('click', () => {
+    erasing = !erasing;
+    eraserBtn.classList.toggle('active', erasing);
+    updateBrushDot();
+  });
+
+  clearBtn.addEventListener('click', () => {
+    ctx.fillStyle = PAPER;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  });
+
+  saveBtn.addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.download = 'biggy-paint.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+
+  new ResizeObserver(fitCanvas).observe(canvas);
+  fitCanvas();
+  pickColor(palette[1][0]);
+});
+
+
+document.addEventListener('DOMContentLoaded', () => {
+  const frame = document.getElementById('browserFrame');
+  const address = document.getElementById('browserAddressBar');
+  if (!frame || !address) return;
+
+  const homeScreen = document.getElementById('browserHome');
+  const blockedScreen = document.getElementById('browserBlocked');
+  const settingsScreen = document.getElementById('browserSettings');
+  const statusEl = document.getElementById('browserStatus');
+  const backBtn = document.getElementById('browserBackBtn');
+  const fwdBtn = document.getElementById('browserFwdBtn');
+  const tilesEl = document.getElementById('browserTiles');
+  const proxyInput = document.getElementById('browserProxyInput');
+  const proxyState = document.getElementById('browserProxyState');
+  const settingsBtn = document.getElementById('browserSettingsBtn');
+  const blockedText = document.getElementById('browserBlockedText');
+
+  const PROXY_KEY = 'biggyos-browser-proxy';
+  const BOOKMARKS_KEY = 'biggyos-browser-bookmarks';
+  const LOAD_TIMEOUT = 8000;
+  const SEARCH_PREFIX = 'https://lite.duckduckgo.com/lite/?q=';
+
+  const defaultTiles = [
+    { icon: "xbox.png", label: 'Monkey Mart', url: 'https://monkeymartfree.com/play/monkey-mart/' },
+    { label: 'Example', url: 'https://example.com' },
+    { icon: 'browser.jpg', label: 'Wikipedia', url: 'https://en.m.wikipedia.org/wiki/Cheese' },
+    { icon: 'hackclub.png', label: 'Hack Club', url: 'https://hackclub.com' }
+  ];
+
+  const history = [];
+  let historyIndex = -1;
+  let loadTimer = null;
+
+  function getProxy() {
+    return (localStorage.getItem(PROXY_KEY) || '').replace(/\/+$/, '');
+  }
+
+  function getBookmarks() {
+    try {
+      return JSON.parse(localStorage.getItem(BOOKMARKS_KEY)) || [];
+    } catch {
+      return [];
+    }
+  }
+
+  function setBookmarks(list) {
+    localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(list));
+    renderTiles();
+  }
+
+  function toUrl(input) {
+    const text = input.trim();
+    if (!text) return null;
+    if (/^https?:\/\//i.test(text)) return text;
+    if (/^[^\s]+\.[^\s]{2,}(\/.*)?$/.test(text)) return 'https://' + text;
+    return SEARCH_PREFIX + encodeURIComponent(text);
+  }
+
+  function frameUrl(url) {
+    const proxy = getProxy();
+    return proxy ? proxy + '/go?url=' + encodeURIComponent(url) : url;
+  }
+
+  function showScreen(name) {
+    homeScreen.style.display = name === 'home' ? 'flex' : 'none';
+    blockedScreen.style.display = name === 'blocked' ? 'flex' : 'none';
+    settingsScreen.style.display = name === 'settings' ? 'flex' : 'none';
+    frame.style.display = name === 'frame' ? 'block' : 'none';
+  }
+
+  function setStatus(text) {
+    statusEl.textContent = text;
+  }
+
+  function updateArrows() {
+    backBtn.disabled = historyIndex <= 0;
+    fwdBtn.disabled = historyIndex >= history.length - 1;
+  }
+
+  function showBlocked(url) {
+    blockedText.textContent = getProxy()
+      ? `${url} never came back through the proxy. It might be down, or the site is too heavy for it.`
+      : `${url} never loaded. Sites that refuse framing come up blank instead — a proxy server fixes that.`;
+    showScreen('blocked');
+    setStatus('Blocked');
+  }
+
+  function load(url, addToHistory = true) {
+    if (addToHistory) {
+      history.splice(historyIndex + 1);
+      history.push(url);
+      historyIndex = history.length - 1;
+    }
+
+    address.value = url;
+    updateArrows();
+    showScreen('frame');
+    setStatus('Loading ' + url);
+
+    clearTimeout(loadTimer);
+    loadTimer = setTimeout(() => showBlocked(url), LOAD_TIMEOUT);
+    frame.src = frameUrl(url);
+  }
+
+  frame.addEventListener('load', () => {
+    if (!frame.src || frame.src === 'about:blank') return;
+    clearTimeout(loadTimer);
+    setStatus(getProxy()
+      ? 'Loaded through proxy'
+      : 'Loaded — page blank? this site blocks framing, try ↗');
+  });
+
+  function goHome() {
+    clearTimeout(loadTimer);
+    frame.src = 'about:blank';
+    address.value = '';
+    showScreen('home');
+    setStatus(getProxy() ? 'Proxy mode' : 'Direct mode — framed sites only');
+  }
+
+  function renderTiles() {
+    tilesEl.innerHTML = '';
+
+    const saved = getBookmarks();
+    [...defaultTiles, ...saved].forEach((tile, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'browser-tile';
+      if (tile.icon) {
+        const icon = document.createElement('img');
+        icon.className = 'browser-tile-icon';
+        icon.src = tile.icon;
+        icon.alt = '';
+        btn.appendChild(icon);
+      }
+
+      const label = document.createElement('span');
+      label.textContent = tile.label;
+      btn.appendChild(label);
+      btn.addEventListener('click', () => load(tile.url));
+
+      if (i >= defaultTiles.length) {
+        const remove = document.createElement('button');
+        remove.className = 'browser-tile-remove';
+        remove.textContent = '✕';
+        remove.title = 'Remove bookmark';
+        remove.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setBookmarks(getBookmarks().filter(b => b.url !== tile.url));
+        });
+        btn.appendChild(remove);
+      }
+
+      tilesEl.appendChild(btn);
+    });
+  }
+
+  function currentUrl() {
+    return history[historyIndex] || null;
+  }
+
+  address.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const text = address.value;
+    const url = toUrl(text);
+    if (!url) return;
+
+    if (url.startsWith(SEARCH_PREFIX) && !getProxy()) {
+      window.open(url, '_blank', 'noopener');
+      setStatus('Searches need a proxy — opened in a real tab');
+      return;
+    }
+    load(url);
+  });
+
+  backBtn.addEventListener('click', () => {
+    if (historyIndex > 0) load(history[--historyIndex], false);
+  });
+
+  fwdBtn.addEventListener('click', () => {
+    if (historyIndex < history.length - 1) load(history[++historyIndex], false);
+  });
+
+  document.getElementById('browserReloadBtn').addEventListener('click', () => {
+    const url = currentUrl();
+    if (url) load(url, false);
+  });
+
+  document.getElementById('browserHomeBtn').addEventListener('click', goHome);
+
+  document.getElementById('browserBookmarkBtn').addEventListener('click', () => {
+    const url = currentUrl();
+    if (!url) return;
+    if (getBookmarks().some(b => b.url === url)) return;
+
+    let label;
+    try {
+      label = new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+      label = url;
+    }
+    setBookmarks([...getBookmarks(), { emoji: '⭐️', label, url }]);
+    setStatus('Bookmarked ' + label);
+  });
+
+  function openExternally() {
+    const url = currentUrl();
+    if (url) window.open(url, '_blank', 'noopener');
+  }
+  document.getElementById('browserExternalBtn').addEventListener('click', openExternally);
+  document.getElementById('browserBlockedExternal').addEventListener('click', openExternally);
+
+  function showProxyState() {
+    const proxy = getProxy();
+    proxyState.textContent = proxy
+      ? 'Currently proxying through ' + proxy
+      : 'No proxy set. Only sites that allow framing will load.';
+    settingsBtn.classList.toggle('active', !!proxy);
+  }
+
+  settingsBtn.addEventListener('click', () => {
+    proxyInput.value = getProxy();
+    showProxyState();
+    showScreen('settings');
+    setStatus('Settings');
+  });
+
+  document.getElementById('browserProxySave').addEventListener('click', () => {
+    const value = proxyInput.value.trim().replace(/\/+$/, '');
+    if (value && !/^https?:\/\//i.test(value)) {
+      alert('Proxy address needs to start with http:// or https://');
+      return;
+    }
+    localStorage.setItem(PROXY_KEY, value);
+    showProxyState();
+    goHome();
+  });
+
+  document.getElementById('browserProxyClear').addEventListener('click', () => {
+    localStorage.removeItem(PROXY_KEY);
+    proxyInput.value = '';
+    showProxyState();
+    goHome();
+  });
+
+  registerWindowState('windowbrowserjs', {
+    save() {
+      return { url: currentUrl() };
+    },
+    restore() {}
+  });
+
+  window.resetBrowser = goHome;
+
+  renderTiles();
+  showProxyState();
+  goHome();
+});
+
+
+const playBiggyCraftButton = document.getElementById('playBiggyCraft');
+const biggycraftFrame = document.getElementById('biggycraftFrame');
+const biggycraftLauncher = document.getElementById('biggycraftLauncher');
+
+playBiggyCraftButton.addEventListener('click', () => {
+  if (!biggycraftFrame.src) {
+    biggycraftFrame.src = biggycraftFrame.dataset.src;
+  }
+  biggycraftLauncher.style.display = 'none';
+  biggycraftFrame.style.display = 'block';
+
+  bringToFront(document.getElementById('windowbiggycraftjs'));
+});
+
+function resetBiggyCraft() {
+  biggycraftFrame.removeAttribute("src");
+  biggycraftFrame.style.display = 'none';
+  biggycraftLauncher.style.display = 'flex';
+}

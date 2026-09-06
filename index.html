@@ -89,10 +89,10 @@
                 <button id="playPauseBtn"><img id="playPauseIcon" src="play-buttton.png" alt="Play/Pause"></button>
                 <input type="range" id="seekBar" value="0" min="0" max="100" step="0.1">
                 <span id="timeDisplay">0:00 / 0:00</span>
-                <button id="muteBtn">🔈</button>
+                <button id="muteBtn"><img id="muteIcon" src="sound-on.png" alt="Mute/Unmute"></button>
                 <div class="yt-badge">
                     <a href="https://www.youtube.com/channel/UCdMN0m5hjlazL5wQzjadGsw" target="_blank" rel="noopener noreferrer">
-                        <img src="yt.svg" alt="YouTube Logo" style="width: 50px; height: 50px;">
+                        <img src="yt.svg" alt="YouTube Logo">
                     </a>
                 </div>
             </div>
@@ -404,7 +404,13 @@
             <audio id="musicAudio" preload="metadata"></audio>
 
             <div class="music-now-playing">
-                <div class="music-art">🎵</div>
+                <div class="music-art">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-music-note" viewBox="0 0 16 16">
+                        <path d="M9 13c0 1.105-1.12 2-2.5 2S4 14.105 4 13s1.12-2 2.5-2 2.5.895 2.5 2"/>
+                        <path fill-rule="evenodd" d="M9 3v10H8V3z"/>
+                        <path d="M8 2.82a1 1 0 0 1 .804-.98l3-.6A1 1 0 0 1 13 2.22V4L8 5z"/>
+                    </svg>
+                </div>
                 <div class="music-track-title" id="musicTrackTitle">No Track Selected</div>
             </div>
             <div class="music-transport">
@@ -437,6 +443,155 @@
     <div class="resize-handle" data-dir="br"></div>
     </div>
 
+
+    <div class="calcwindow" id="windowcalcjs" style="display: none;">
+        <div class="title-bar">
+            <button class="control-btn close" onclick="closeWindow('windowcalcjs')"></button>
+            <button class="control-btn minimize" onclick="minimizeWindow('windowcalcjs')"></button>
+            <button class="control-btn maximize" onclick="maximizeWindow('windowcalcjs')"></button>
+            <div class="title-text">Calculator</div>
+        </div>
+        <div class="calcwindowcontent" id="calcwindowcontentjs">
+            <div class="calc-display" id="calcDisplay">0</div>
+            <div class="calc-keys" id="calcKeys"></div>
+        </div>
+        <div class="resize-handle" data-dir="tl"></div>
+        <div class="resize-handle" data-dir="tr"></div>
+        <div class="resize-handle" data-dir="bl"></div>
+        <div class="resize-handle" data-dir="br"></div>
+    </div>
+
+    <div class="paintwindow" id="windowpaintjs" style="display: none;">
+        <div class="title-bar">
+            <button class="control-btn close" onclick="closeWindow('windowpaintjs')"></button>
+            <button class="control-btn minimize" onclick="minimizeWindow('windowpaintjs')"></button>
+            <button class="control-btn maximize" onclick="maximizeWindow('windowpaintjs')"></button>
+            <div class="title-text">Biggy Paint</div>
+        </div>
+        <div class="paintwindowcontent" id="paintwindowcontentjs">
+            <div class="paint-swatches" id="paintSwatches"></div>
+
+            <div class="paint-tools">
+                <label class="paint-custom" title="Any color you like">
+                    <input type="color" id="paintColor" value="#d8b02d">
+                </label>
+                <span class="paint-brush-preview" id="paintBrushPreview"></span>
+                <input type="range" id="paintSize" min="1" max="40" value="6" title="Brush size">
+                <button class="paint-btn" id="paintEraserBtn">Erase</button>
+                <button class="paint-btn" id="paintClearBtn">Wipe</button>
+                <button class="paint-btn" id="paintSaveBtn">Save</button>
+            </div>
+
+            <div class="paint-paper">
+                <canvas class="paint-canvas" id="paintCanvas"></canvas>
+            </div>
+            <p class="paint-hint">Scribble somethin' cheesy.</p>
+        </div>
+        <div class="resize-handle" data-dir="tl"></div>
+        <div class="resize-handle" data-dir="tr"></div>
+        <div class="resize-handle" data-dir="bl"></div>
+        <div class="resize-handle" data-dir="br"></div>
+    </div>
+
+    <div class="browserwindow" id="windowbrowserjs" style="display: none;">
+        <div class="title-bar">
+            <button class="control-btn close" onclick="closeWindow('windowbrowserjs')"></button>
+            <button class="control-btn minimize" onclick="minimizeWindow('windowbrowserjs')"></button>
+            <button class="control-btn maximize" onclick="maximizeWindow('windowbrowserjs')"></button>
+            <div class="title-text">Biggy Browser</div>
+        </div>
+        <div class="browserwindowcontent" id="browserwindowcontentjs">
+            <div class="browser-toolbar">
+                <button class="browser-nav-btn" id="browserBackBtn" title="Back">&#8249;</button>
+                <button class="browser-nav-btn" id="browserFwdBtn" title="Forward">&#8250;</button>
+                <button class="browser-nav-btn" id="browserReloadBtn" title="Reload">&#8635;</button>
+                <button class="browser-nav-btn" id="browserHomeBtn" title="Home">&#8962;</button>
+                <input type="text" id="browserAddressBar" class="browser-address" placeholder="Search or type an address" spellcheck="false" autocomplete="off">
+                <button class="browser-nav-btn" id="browserBookmarkBtn" title="Bookmark this page">&#9733;</button>
+                <button class="browser-nav-btn" id="browserExternalBtn" title="Open in a real tab">&#8599;</button>
+                <button class="browser-nav-btn" id="browserSettingsBtn" title="Proxy settings">&#9881;</button>
+            </div>
+
+            <div class="browser-status" id="browserStatus"></div>
+
+            <div class="browser-stage">
+                <iframe id="browserFrame" class="browser-frame" title="Biggy Browser" style="display: none;"
+                        sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-modals"></iframe>
+
+                <div class="browser-screen" id="browserHome">
+                    <h2 class="browser-screen-title">Where to, Biggy?</h2>
+                    <div class="browser-tiles" id="browserTiles"></div>
+                    <p class="browser-warning">Never type a real password in here. Everything you load runs through your own proxy.</p>
+                </div>
+
+                <div class="browser-screen" id="browserBlocked" style="display: none;">
+                    <div class="browser-screen-emoji">&#128683;</div>
+                    <h2 class="browser-screen-title">This site slammed the door</h2>
+                    <p class="browser-screen-text" id="browserBlockedText"></p>
+                    <button class="browser-screen-btn" id="browserBlockedExternal">Open in a real tab &#8599;</button>
+                </div>
+
+                <div class="browser-screen" id="browserSettings" style="display: none;">
+                    <h2 class="browser-screen-title">Proxy Server</h2>
+                    <p class="browser-screen-text">
+                        Paste the address of your Ultraviolet proxy. Without one, Biggy Browser can only
+                        open sites that allow being framed.
+                    </p>
+                    <input type="text" id="browserProxyInput" class="browser-proxy-input" spellcheck="false"
+                           placeholder="https://my-proxy.onrender.com">
+                    <div class="browser-settings-actions">
+                        <button class="browser-screen-btn" id="browserProxySave">Save</button>
+                        <button class="browser-screen-btn ghost" id="browserProxyClear">Use direct mode</button>
+                    </div>
+                    <p class="browser-screen-text small" id="browserProxyState"></p>
+                </div>
+            </div>
+        </div>
+        <div class="resize-handle" data-dir="tl"></div>
+        <div class="resize-handle" data-dir="tr"></div>
+        <div class="resize-handle" data-dir="bl"></div>
+        <div class="resize-handle" data-dir="br"></div>
+    </div>
+
+    <div class="Biggycraftwindow" id="windowbiggycraftjs" style="display: none;">
+        <div class="title-bar">
+            <button class="control-btn close" onclick="closeWindow('windowbiggycraftjs')"></button>
+            <button class="control-btn minimize" onclick="minimizeWindow('windowbiggycraftjs')"></button>
+            <button class="control-btn maximize" onclick="maximizeWindow('windowbiggycraftjs')"></button>
+            <div class="title-text">BiggyCraft</div>
+        </div>
+
+        <div class="Biggycraftwindowcontent" id="Biggycraftwindowcontentjs">
+            <div class="biggycraftlauncher" id="biggycraftLauncher">
+                <h2 style="font-family: var(--font-display)">BiggyCraft</h2>
+                <p>Choose how you want to play:</p>
+
+                <button class="biggycraft-action" id="playBiggyCraft" type="button">
+                    Play in Biggy OS
+                </button>
+
+                <a
+                    class="biggycraft-action biggycraft-download"
+                    href="./BiggyCraft_1.0_Offline_en_US.html"
+                    download="BiggyCraft.html">
+                    Download Game
+                </a>
+            </div>
+
+            <iframe
+                id="biggycraftFrame"
+                data-src="./BiggyCraft_1.0_Offline_en_US.html"
+                title="BiggyCraft"
+                allow="autoplay; fullscreen; pointer-lock"
+                allowfullscreen>
+            </iframe>
+        </div>
+
+        <div class="resize-handle" data-dir="tl"></div>
+        <div class="resize-handle" data-dir="tr"></div>
+        <div class="resize-handle" data-dir="bl"></div>
+        <div class="resize-handle" data-dir="br"></div>
+    </div>
 
     <!-- context menu -->
 

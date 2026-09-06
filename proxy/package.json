@@ -1,0 +1,21 @@
+{
+  "name": "biggyos-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ultraviolet + Wisp proxy server that powers the Biggy Browser app in BiggyOS.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@mercuryworkshop/bare-mux": "^2.1.9",
+    "@mercuryworkshop/epoxy-transport": "^3.0.1",
+    "@mercuryworkshop/wisp-js": "^0.4.1",
+    "@titaniumnetwork-dev/ultraviolet": "^3.2.10",
+    "express": "^5.2.1"
+  }
+}

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Loading…</title>
+    <style>
+        html, body { margin: 0; height: 100%; background: rgb(27, 25, 23); color: rgba(255, 255, 255, 0.5); }
+        .msg { height: 100%; display: flex; align-items: center; justify-content: center; font: 15px sans-serif; }
+    </style>
+</head>
+<body>
+    <div class="msg" id="msg">Tunnelling…</div>
+
+    <script src="/uv/uv.bundle.js"></script>
+    <script src="/uv/uv.config.js"></script>
+    <script type="module">
+        import { BareMuxConnection } from '/baremux/index.mjs';
+
+        const target = new URLSearchParams(location.search).get('url');
+        const msg = document.getElementById('msg');
+
+        function fail(text) {
+            msg.textContent = text;
+        }
+
+        async function go() {
+            if (!target) return fail('No address given.');
+
+            if (!navigator.serviceWorker) {
+                return fail('This browser blocks service workers, so the proxy can\'t run.');
+            }
+
+            try {
+                await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+                await navigator.serviceWorker.ready;
+
+                // Point bare-mux at this server's own Wisp endpoint.
+                const wispUrl = (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host + '/wisp/';
+                const connection = new BareMuxConnection('/baremux/worker.js');
+                await connection.setTransport('/epoxy/index.mjs', [{ wisp: wispUrl }]);
+
+                location.replace(__uv$config.prefix + __uv$config.encodeUrl(target));
+            } catch (err) {
+                console.error(err);
+                fail('Proxy failed to start: ' + err.message);
+            }
+        }
+
+        go();
+    </script>
+</body>
+</html>
