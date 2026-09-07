@@ -4,6 +4,9 @@ A web-based desktop environment that runs in your browser 🐀🧀
 
 Built with HTML, CSS, and JavaScript
 
+![Uploading Screenshot 2026-09-06 at 8.00.46 PM.png…]()
+
+
 ## About
 
 BiggyOS is a fully client-side desktop environment that runs entirely in your browser. It features a windowing system, a modular app dock, a live analog/digital clock, a swappable background gallery, and a playful rat-and-cheese theme throughout — all rendered with plain HTML, CSS, and JavaScript.
@@ -112,7 +115,7 @@ const backgrounds = [
 |---|---|
 | Made by | Logan |
 | GitHub | [Logdegret](https://github.com/Logdegret) |
-| Repository | [Biggy-chez](https://github.com/Logdegret/Biggy-chez) |
+| Repository | [Biggy-Cheese-OS](https://github.com/Logdegret/Biggy-Cheese-OS) |
 
 ---
 
