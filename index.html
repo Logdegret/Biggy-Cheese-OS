@@ -11,6 +11,48 @@
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 </head>
 <body class="box">
+
+    <div id="biggyPet" hidden>
+
+    <img
+        id="biggyImage"
+        src="assets/biggy/biggy.gif"
+        alt="Biggy"
+        draggable="false"
+    >
+
+    <div id="biggyBubble">
+
+        <div id="biggyText">
+            Hi! I'm Biggy Cheese! Welcome to Biggy OS!
+        </div>
+
+        <div id="biggyControls">
+
+            <button id="biggyNext" type="button">
+                Show me around
+            </button>
+
+            <button id="biggySkip" type="button">
+                Skip
+            </button>
+
+            <button
+                id="biggySound"
+                type="button"
+                title="Turn voice on or off"
+                aria-label="Turn Biggy's voice off"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg>
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
     <!-- Boot Screen Section -->
     <div id="boot-screen">
         <div class="boot-content">
@@ -587,6 +629,31 @@
             </iframe>
         </div>
 
+        <div class="resize-handle" data-dir="tl"></div>
+        <div class="resize-handle" data-dir="tr"></div>
+        <div class="resize-handle" data-dir="bl"></div>
+        <div class="resize-handle" data-dir="br"></div>
+    </div>
+
+    <div class="filemanagerwindow" id="windowfilemanagerjs" style="display: none;">
+        <div class="title-bar">
+            <button class="control-btn close" onclick="closeWindow('windowfilemanagerjs')"></button>
+            <button class="control-btn minimize" onclick="minimizeWindow('windowfilemanagerjs')"></button>
+            <button class="control-btn maximize" onclick="maximizeWindow('windowfilemanagerjs')"></button>
+            <div class="title-text">File Manager</div>
+        </div>
+            <div class="filemanagerwindowcontent" id="filemanagerwindowcontentjs">
+                <div class="file-manager-toolbar">
+                    <button id="fmUpBtn" class="file-manager-btn" title="Go up one folder">↑</button>
+                    <button id="newFolderBtn" class="file-manager-btn">New Folder</button>
+                    <button id="newFileBtn" class="file-manager-btn">New File</button>
+                    <button id="uploadFileBtn" class="file-manager-btn">Upload File</button>
+                    <input type="file" id="uploadFileInput" multiple style="display: none;">
+                </div>
+            <div id="fmBreadcrumb" class="fm-breadcrumb"></div>
+            <ul id="fileList" class="file-list"></ul>
+            <div id="fmPreview" class="fm-preview"></div>
+        </div>
         <div class="resize-handle" data-dir="tl"></div>
         <div class="resize-handle" data-dir="tr"></div>
         <div class="resize-handle" data-dir="bl"></div>

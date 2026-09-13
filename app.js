@@ -96,7 +96,7 @@ function restoreWindowState(windowId) {
   savedWindowState.delete(windowId);
 }
 
-const flexWindows = new Set(['terminal-window', 'windowgamejs', 'windowbiggycraftjs', 'windowjs', 'windowbgjs', 'windowdudejs', 'windowmemejs', 'windowweatherjs', 'windowmusicjs', 'windowcalcjs', 'windowpaintjs', 'windowbrowserjs']);
+const flexWindows = new Set(['windowfilemanagerjs', 'terminal-window', 'windowgamejs', 'windowbiggycraftjs', 'windowjs', 'windowbgjs', 'windowdudejs', 'windowmemejs', 'windowweatherjs', 'windowmusicjs', 'windowcalcjs', 'windowpaintjs', 'windowbrowserjs']);
 
 function openWindow(windowId) {
   const target = document.getElementById(windowId);
@@ -204,16 +204,50 @@ function maximizeWindow(windowId) {
 
 const CURRENT_BG_KEY = "biggyos-background";
 
-function setBackground(imagePath) {
-  document.body.style.backgroundImage = `url('${imagePath}')`;
-  document.body.style.backgroundSize = "cover";
-  document.body.style.backgroundPosition = "center";
-  document.body.style.backgroundRepeat = "no-repeat";
-  localStorage.setItem(CURRENT_BG_KEY, imagePath);
+function isVideoBackground(path) {
+  return /^data:video\/mp4[;,]/i.test(path) || /\.mp4(?:[?#]|$)/i.test(path);
+}
+
+function clearBackgroundVideo() {
+  const video = document.getElementById('desktopBackgroundVideo');
+  if (!video) return;
+  video.pause();
+  video.removeAttribute('src');
+  video.load();
+  video.remove();
+}
+
+function setBackground(mediaPath) {
+  clearBackgroundVideo();
+  document.body.style.backgroundImage = '';
+  if (isVideoBackground(mediaPath)) {
+    const video = document.createElement('video');
+    video.id = 'desktopBackgroundVideo';
+    video.muted = true;
+    video.loop = true;
+    video.autoplay = true;
+    video.playsInline = true;
+    video.setAttribute('aria-hidden', 'true');
+    video.src = mediaPath;
+    document.body.prepend(video);
+    video.play().catch(() => {});
+  } else {
+    document.body.style.backgroundImage = `url("${mediaPath.replace(/"/g, '%22')}")`;
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundPosition = 'center';
+    document.body.style.backgroundRepeat = 'no-repeat';
+  }
+  try {
+    const custom = getCustomBackgrounds().find(bg => bg.file === mediaPath);
+    localStorage.setItem(CURRENT_BG_KEY, custom ? custom.id : mediaPath);
+  } catch {
+    alert("Background applied, but there's not enough storage to remember it after reloading.");
+  }
 }
 
 function removeBackground() {
-  document.body.style.backgroundImage = "";
+  clearBackgroundVideo();
+  document.body.style.backgroundImage = '';
   localStorage.removeItem(CURRENT_BG_KEY);
 }
 
@@ -233,7 +267,8 @@ dragElement(document.getElementById("windowcalcjs"), document.querySelector("#wi
 dragElement(document.getElementById("windowpaintjs"), document.querySelector("#windowpaintjs .title-bar"))
 dragElement(document.getElementById("windowbrowserjs"), document.querySelector("#windowbrowserjs .title-bar"))
 dragElement(document.getElementById("windowbiggycraftjs"), document.querySelector("#windowbiggycraftjs .title-bar"))
-
+dragElement(document.getElementById("windowfilemanagerjs"), document.querySelector("#windowfilemanagerjs .title-bar"))
+makeResizable(document.getElementById("windowfilemanagerjs"));
 makeResizable(document.getElementById("windowgamejs"));
 makeResizable(document.getElementById("windowjs"));
 makeResizable(document.getElementById("windowbgjs"));
@@ -400,6 +435,7 @@ const BROWSER_ICON =
   "%3C/svg%3E";
 
 const apps = [
+  { id: "filemanager", name: "File Manager", icon: "files.png" , color: "#07f7ff", windowId: "windowfilemanagerjs"},
   { id: "play",   name:"VideoMeme",    icon: "play.png",       color: "#e0c52e", windowId: "windowjs" },
   { id: "background", name:"Backgrounds", icon: "background.png", color: "#f04c4c", windowId: "windowbgjs" },
   { id: "dude",   name:"About Me",    icon: "Dude.png",       color: "#10902e", windowId: "windowdudejs" },
@@ -415,6 +451,7 @@ const apps = [
   { id: "paint", name: "Biggy Paint", icon: "pencil.jpg" , color: "#6c009b", windowId: "windowpaintjs", installable: true },
   { id: "browser", name: "Biggy Browser", icon: "browser.jpg" , color: "#25c7c7", windowId: "windowbrowserjs", installable: true },
   { id: "biggycraft", name: "BiggyCraft", icon: "minecraft.png" , color: "#65380c", windowId: "windowbiggycraftjs", installable: true }
+
 ];
 
 const INSTALLED_APPS_KEY = "biggyos-installed-apps";
@@ -540,52 +577,92 @@ const backgrounds = [
   { id: "barnyard", type: "image", label: "Barnyard", file: "barnyard.jpg" },
   { id: "moo",      type: "image", label: "Moo",      file: "moo.jpg" },
   { id: "4k1", type:"image",label:"spiderman", file: "bg3.jpg"},
-  { id:"4k2", type:"image", label:"mountains", file:"bg4.jpg"}
+  { id:"4k2", type:"image", label:"mountains", file:"bg4.jpg"},
+  { id:"4k3", type:"image", label:"porsche", file:"porsche.mp4"}
 ];
 
 const CUSTOM_BGS_KEY = "biggyos-custom-backgrounds";
-const MAX_CUSTOM_BG_BYTES = 4 * 1024 * 1024;
+const MAX_CUSTOM_BG_BYTES = 10 * 1024 * 1024;
+
+let customBackgrounds = [];
+const backgroundDatabase = new Promise((resolve, reject) => {
+  const request = indexedDB.open('biggyos-wallpapers', 1);
+  request.onupgradeneeded = () => request.result.createObjectStore('settings');
+  request.onsuccess = () => resolve(request.result);
+  request.onerror = () => reject(request.error);
+});
+
+async function backgroundStorage(mode, list) {
+  const db = await backgroundDatabase;
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('settings', mode);
+    const store = transaction.objectStore('settings');
+    const request = mode === 'readonly'
+      ? store.get(CUSTOM_BGS_KEY) : store.put(list, CUSTOM_BGS_KEY);
+    transaction.oncomplete = () => resolve(request.result);
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
+  });
+}
 
 function getCustomBackgrounds() {
+  return customBackgrounds;
+}
+
+async function setCustomBackgrounds(list) {
   try {
-    return JSON.parse(localStorage.getItem(CUSTOM_BGS_KEY)) || [];
+    await backgroundStorage('readwrite', list);
+    customBackgrounds = list;
+    return true;
   } catch {
-    return [];
+    alert("Unable to save this background - browser storage is full or unavailable.");
+    return false;
   }
 }
 
-function setCustomBackgrounds(list) {
+const customBackgroundsReady = (async () => {
   try {
-    localStorage.setItem(CUSTOM_BGS_KEY, JSON.stringify(list));
+    customBackgrounds = await backgroundStorage('readonly') || [];
+    const legacy = JSON.parse(localStorage.getItem(CUSTOM_BGS_KEY) || '[]');
+    if (legacy.length) {
+      const merged = [...customBackgrounds, ...legacy.filter(bg => !customBackgrounds.some(item => item.id === bg.id))];
+      if (await setCustomBackgrounds(merged)) localStorage.removeItem(CUSTOM_BGS_KEY);
+    }
   } catch {
-    alert("Out of storage - remove a background or two first.");
+    try {
+      customBackgrounds = JSON.parse(localStorage.getItem(CUSTOM_BGS_KEY) || '[]');
+    } catch {}
   }
-}
+})();
 
 function addCustomBackground(file) {
-  if (!file.type.startsWith("image/")) {
-    alert("That's not an image. GIF, PNG, JPG or WEBP only.");
+  if (!file.type.startsWith("image/") && file.type !== "video/mp4" && !/\.mp4$/i.test(file.name)) {
+    alert("Choose an image, GIF or MP4 video.");
     return;
   }
   if (file.size > MAX_CUSTOM_BG_BYTES) {
-    alert("That file's too chunky (4MB max).");
+    alert("That file's too chunky (10MB max).");
     return;
   }
 
   const reader = new FileReader();
-  reader.onload = () => {
-    const list = getCustomBackgrounds();
-    list.push({ id: "custom-" + Date.now(), label: file.name, file: reader.result });
-    setCustomBackgrounds(list);
-    renderBackgrounds();
+  reader.onload = async () => {
+    await customBackgroundsReady;
+    const list = [...getCustomBackgrounds(), {
+      id: 'custom-' + Date.now(), label: file.name, file: reader.result
+    }];
+    if (await setCustomBackgrounds(list)) renderBackgrounds();
   };
-  reader.readAsDataURL(file);
+  reader.readAsDataURL(/\.mp4$/i.test(file.name) && file.type !== "video/mp4"
+    ? new Blob([file], { type: "video/mp4" }) : file);
 }
 
-function removeCustomBackground(id) {
+async function removeCustomBackground(id) {
+  await customBackgroundsReady;
   const removed = getCustomBackgrounds().find(bg => bg.id === id);
-  setCustomBackgrounds(getCustomBackgrounds().filter(bg => bg.id !== id));
-  if (removed && localStorage.getItem(CURRENT_BG_KEY) === removed.file) removeBackground();
+  if (!await setCustomBackgrounds(getCustomBackgrounds().filter(bg => bg.id !== id))) return;
+  const current = localStorage.getItem(CURRENT_BG_KEY);
+  if (removed && (current === removed.id || current === removed.file)) removeBackground();
   renderBackgrounds();
 }
 
@@ -597,11 +674,19 @@ function makeBgThumb(bg) {
   button.className = "bg-thumb-btn";
   button.title = bg.label;
 
-  const img = document.createElement("img");
-  img.className = "fit";
-  img.src = bg.file;
-  img.alt = bg.label;
-  button.appendChild(img);
+  const media = document.createElement(isVideoBackground(bg.file) ? 'video' : 'img');
+  media.className = 'fit';
+  media.src = bg.file;
+  if (media.tagName === 'VIDEO') {
+    media.muted = true;
+    media.playsInline = true;
+    media.preload = 'metadata';
+    media.setAttribute('aria-hidden', 'true');
+    button.setAttribute('aria-label', bg.label + ' (MP4 video)');
+  } else {
+    media.alt = bg.label;
+  }
+  button.appendChild(media);
   button.addEventListener("click", () => setBackground(bg.file));
 
   wrapper.appendChild(button);
@@ -612,6 +697,11 @@ function renderBackgrounds() {
   const container = document.querySelector("#windowbgjs .windowbgcontent");
   if (!container) return;
 
+  container.querySelectorAll('.bg-thumb video').forEach(video => {
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+  });
   container.querySelectorAll(".bg-thumb").forEach(el => el.remove());
 
   backgrounds.forEach(bg => {
@@ -652,12 +742,12 @@ function renderBackgrounds() {
 
   const addBtn = document.createElement("button");
   addBtn.className = "bg-thumb-btn bg-add-btn";
-  addBtn.title = "Add your own image or GIF";
-  addBtn.innerHTML = "+<small>image / gif</small>";
+  addBtn.title = "Add your own image, GIF or MP4";
+  addBtn.innerHTML = "+<small>image / gif / mp4</small>";
 
   const picker = document.createElement("input");
   picker.type = "file";
-  picker.accept = "image/*,image/gif";
+  picker.accept = "image/*,video/mp4,.mp4";
   picker.style.display = "none";
   picker.addEventListener("change", () => {
     if (picker.files[0]) addCustomBackground(picker.files[0]);
@@ -672,8 +762,14 @@ function renderBackgrounds() {
 
 renderBackgrounds();
 
-const savedBackground = localStorage.getItem(CURRENT_BG_KEY);
-if (savedBackground) setBackground(savedBackground);
+customBackgroundsReady.then(() => {
+  renderBackgrounds();
+  const savedBackground = localStorage.getItem(CURRENT_BG_KEY);
+  const custom = getCustomBackgrounds().find(bg => bg.id === savedBackground);
+  if (savedBackground && (!savedBackground.startsWith('custom-') || custom)) {
+    setBackground(custom ? custom.file : savedBackground);
+  }
+});
 
 
 const ratJokes = [
@@ -1532,153 +1628,208 @@ function setIframesInteractive(interactive) {
 }
 
 (function () {
-  const TUTORIAL_SEEN_KEY = 'biggyos-tutorial-seen';
+  const COMPLETE_KEY = 'biggyos-biggy-tour-complete';
+  const OLD_TUTORIAL_KEY = 'biggyos-tutorial-seen';
+  const pet = document.getElementById('biggyPet');
+  const image = document.getElementById('biggyImage');
+  const text = document.getElementById('biggyText');
+  const next = document.getElementById('biggyNext');
+  const skip = document.getElementById('biggySkip');
+  const sound = document.getElementById('biggySound');
+
+  if (!pet || !image || !text || !next || !skip || !sound) return;
 
   const steps = [
     {
+      text: "Hi! I'm Biggy Cheese. Welcome to Biggy OS! I'll show you around.",
       target: null,
-      title: 'Right-Click Menu',
-      text: 'Right-click anywhere on the desktop to pull up a quick menu of shortcuts.',
+      voice: 'assets/biggy/welcome.mp3'
     },
     {
-      target: () => document.getElementById('dock-terminal'),
-      title: 'Terminal',
-      text: 'This opens the Terminal — poke around and try a few commands.',
-      placement: 'top',
+      text: 'This is your desktop. Right-click it for useful shortcuts.',
+      target: null,
+      voice: 'assets/biggy/desktop.mp3'
     },
     {
-      target: () => document.getElementById('dock-apps'),
-      title: 'App Store',
-      text: 'Grab more apps here, like Weather and Music.',
-      placement: 'top',
+      text: 'File Manager keeps the folders and files you save in Biggy OS.',
+      target: '#dock-filemanager',
+      voice: 'assets/biggy/files.mp3'
     },
+    {
+      text: 'The App Store is where you can install apps such as Biggy Browser.',
+      target: '#dock-apps',
+      voice: 'assets/biggy/app-store.mp3'
+    },
+    {
+      text: 'The Terminal lets you explore Biggy OS with commands.',
+      target: '#dock-terminal',
+      voice: 'assets/biggy/terminal.mp3'
+    },
+    {
+      text: "That's it! Click me anytime if you want to take the tour again.",
+      target: null,
+      voice: 'assets/biggy/finish.mp3'
+    }
   ];
 
-  let scrim, spotlight, popup, currentStep = -1;
+  let stepIndex = 0;
+  let promptingRestart = false;
+  let voiceEnabled = true;
+  let voiceAvailable = true;
+  let currentAudio = null;
 
-  function build() {
-    scrim = document.createElement('div');
-    scrim.id = 'tutorialScrim';
-
-    spotlight = document.createElement('div');
-    spotlight.id = 'tutorialSpotlight';
-
-    popup = document.createElement('div');
-    popup.id = 'tutorialPopup';
-    popup.innerHTML = `
-      <div class="tutorial-popup-title"></div>
-      <div class="tutorial-popup-text"></div>
-      <div class="tutorial-popup-footer">
-        <div class="tutorial-popup-dots"></div>
-        <div class="tutorial-popup-actions">
-          <button class="tutorial-btn tutorial-skip">Skip</button>
-          <button class="tutorial-btn tutorial-next">Next</button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(scrim);
-    document.body.appendChild(spotlight);
-    document.body.appendChild(popup);
-
-    scrim.addEventListener('click', (e) => e.stopPropagation());
-    popup.querySelector('.tutorial-skip').addEventListener('click', endTutorial);
-    popup.querySelector('.tutorial-next').addEventListener('click', () => {
-      if (currentStep >= steps.length - 1) { endTutorial(); return; }
-      showStep(currentStep + 1);
+  function removeHighlight() {
+    document.querySelectorAll('.biggy-highlight').forEach((item) => {
+      item.classList.remove('biggy-highlight');
     });
-
-    window.addEventListener('resize', () => { if (currentStep >= 0) render(); });
   }
 
-  function render() {
-    const step = steps[currentStep];
-    const targetEl = step.target ? step.target() : null;
+  function movePet(target, immediate = false) {
+    const petRect = pet.getBoundingClientRect();
+    if (!petRect.width || !petRect.height) return;
 
-    if (targetEl) {
-      const r = targetEl.getBoundingClientRect();
-      const pad = 10;
-      spotlight.style.left = (r.left - pad) + 'px';
-      spotlight.style.top = (r.top - pad) + 'px';
-      spotlight.style.width = (r.width + pad * 2) + 'px';
-      spotlight.style.height = (r.height + pad * 2) + 'px';
-      spotlight.style.borderRadius = '16px';
-    } else {
-      spotlight.style.left = '50%';
-      spotlight.style.top = '50%';
-      spotlight.style.width = '0px';
-      spotlight.style.height = '0px';
-      spotlight.style.borderRadius = '50%';
+    const margin = window.innerWidth <= 600 ? 10 : 25;
+    let left = window.innerWidth - petRect.width - margin;
+    let top = window.innerHeight - petRect.height - margin;
+
+    if (target) {
+      const targetRect = target.getBoundingClientRect();
+      left = targetRect.left + (targetRect.width - petRect.width) / 2;
+      top = targetRect.top - petRect.height - 18;
     }
 
-    popup.querySelector('.tutorial-popup-title').textContent = step.title;
-    popup.querySelector('.tutorial-popup-text').textContent = step.text;
+    left = Math.max(10, Math.min(left, window.innerWidth - petRect.width - 10));
+    top = Math.max(10, Math.min(top, window.innerHeight - petRect.height - 10));
 
-    const dots = popup.querySelector('.tutorial-popup-dots');
-    dots.innerHTML = '';
-    steps.forEach((_, i) => {
-      const dot = document.createElement('span');
-      dot.className = 'tutorial-dot' + (i === currentStep ? ' active' : '');
-      dots.appendChild(dot);
-    });
+    if (immediate) pet.style.transition = 'none';
+    pet.style.right = 'auto';
+    pet.style.bottom = 'auto';
+    pet.style.left = `${left}px`;
+    pet.style.top = `${top}px`;
 
-    popup.querySelector('.tutorial-next').textContent =
-      currentStep === steps.length - 1 ? 'Done' : 'Next';
-
-    positionPopup(targetEl, step.placement);
+    if (immediate) {
+      pet.getBoundingClientRect();
+      pet.style.removeProperty('transition');
+    }
   }
 
-  function positionPopup(targetEl, placement) {
-    const pw = popup.offsetWidth;
-    const ph = popup.offsetHeight;
-    const margin = 18;
-    let left, top;
+  function stopVoice() {
+    if (!currentAudio) return;
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    currentAudio = null;
+  }
 
-    if (!targetEl) {
-      left = (window.innerWidth - pw) / 2;
-      top = (window.innerHeight - ph) / 2;
-    } else {
-      const r = targetEl.getBoundingClientRect();
-      left = r.left + r.width / 2 - pw / 2;
-      if (placement === 'top') {
-        top = r.top - ph - margin;
-        if (top < 8) top = r.bottom + margin;
-      } else {
-        top = r.bottom + margin;
-      }
+  function playVoice(file) {
+    stopVoice();
+    if (!voiceEnabled || !voiceAvailable || !file) return;
+
+    const audio = new Audio(file);
+    currentAudio = audio;
+    audio.addEventListener('ended', () => {
+      if (currentAudio === audio) currentAudio = null;
+    }, { once: true });
+    audio.addEventListener('error', () => {
+      if (currentAudio === audio) currentAudio = null;
+      voiceAvailable = false;
+      sound.hidden = true;
+      console.info('Biggy voice files were not found in assets/biggy/.');
+    }, { once: true });
+    audio.play().catch(() => {});
+  }
+
+  function showStep() {
+    const step = steps[stepIndex];
+    removeHighlight();
+    text.textContent = step.text;
+
+    let target = null;
+
+    if (step.target) {
+      target = document.querySelector(step.target);
+      if (target) target.classList.add('biggy-highlight');
     }
 
-    left = Math.max(12, Math.min(left, window.innerWidth - pw - 12));
-    top = Math.max(12, Math.min(top, window.innerHeight - ph - 12));
-
-    popup.style.left = left + 'px';
-    popup.style.top = top + 'px';
+    next.textContent = stepIndex === 0
+      ? 'Show me around'
+      : stepIndex === steps.length - 1 ? "Let's go!" : 'Next';
+    skip.textContent = 'Skip';
+    playVoice(step.voice);
+    requestAnimationFrame(() => movePet(target));
   }
 
-  function showStep(i) {
-    currentStep = i;
-    render();
+  function startTour() {
+    promptingRestart = false;
+    stepIndex = 0;
+    pet.classList.remove('biggy-idle');
+    showStep();
   }
 
-  function endTutorial() {
-    currentStep = -1;
-    if (scrim) scrim.remove();
-    if (spotlight) spotlight.remove();
-    if (popup) popup.remove();
-    scrim = spotlight = popup = null;
-    localStorage.setItem(TUTORIAL_SEEN_KEY, '1');
+  function finishTour() {
+    stopVoice();
+    removeHighlight();
+    promptingRestart = false;
+    localStorage.setItem(COMPLETE_KEY, '1');
+    pet.classList.add('biggy-idle');
+    requestAnimationFrame(() => movePet(null));
   }
 
-  function startTutorial() {
-    if (!scrim) build();
-    showStep(0);
-  }
-
-  document.addEventListener('biggyos:ready', () => {
-    if (!localStorage.getItem(TUTORIAL_SEEN_KEY)) startTutorial();
+  next.addEventListener('click', () => {
+    if (promptingRestart) {
+      startTour();
+      return;
+    }
+    if (stepIndex >= steps.length - 1) {
+      finishTour();
+      return;
+    }
+    stepIndex += 1;
+    showStep();
   });
 
-  window.startTutorial = startTutorial;
+  skip.addEventListener('click', finishTour);
+
+  sound.addEventListener('click', () => {
+    voiceEnabled = !voiceEnabled;
+    sound.innerHTML = voiceEnabled ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="m16 9 5 6m0-6-5 6"/></svg>';
+    sound.setAttribute('aria-label', voiceEnabled
+      ? "Turn Biggy's voice off"
+      : "Turn Biggy's voice on");
+    if (voiceEnabled) playVoice(steps[stepIndex].voice);
+    else stopVoice();
+  });
+
+  image.addEventListener('click', () => {
+    if (!pet.classList.contains('biggy-idle')) return;
+    pet.classList.remove('biggy-idle');
+    promptingRestart = true;
+    text.textContent = 'Hey! Want me to show you around Biggy OS again?';
+    next.textContent = 'Take the tour';
+    skip.textContent = 'Close';
+    requestAnimationFrame(() => movePet(null));
+  });
+
+  pet.addEventListener('click', (event) => event.stopPropagation());
+
+  window.addEventListener('resize', () => {
+    const targetSelector = !promptingRestart && !pet.classList.contains('biggy-idle')
+      ? steps[stepIndex].target
+      : null;
+    const target = targetSelector ? document.querySelector(targetSelector) : null;
+    movePet(target, true);
+  });
+
+  document.addEventListener('biggyos:ready', () => {
+    pet.hidden = false;
+    if (localStorage.getItem(COMPLETE_KEY) || localStorage.getItem(OLD_TUTORIAL_KEY)) {
+      pet.classList.add('biggy-idle');
+      movePet(null, true);
+    } else {
+      startTour();
+    }
+  }, { once: true });
+
+  window.startTutorial = startTour;
 })();
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1757,6 +1908,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', (e) => {
     const win = document.getElementById('windowcalcjs');
     if (!win || win.style.display === 'none') return;
+
+    // don't steal keystrokes from text fields in other apps (notes, terminal, todo, address bar)
+    const active = document.activeElement;
+    if (active && (active.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName))) return;
 
     const map = { '/': '÷', '*': '×', '-': '−', 'Enter': '=', 'Backspace': '←', 'Escape': 'C' };
     const key = map[e.key] || e.key;
@@ -2177,3 +2332,338 @@ function resetBiggyCraft() {
   biggycraftFrame.style.display = 'none';
   biggycraftLauncher.style.display = 'flex';
 }
+const FM_KEY = 'biggyos-files';
+const FM_MAX_UPLOAD = 1.5 * 1024 * 1024;
+const fmPath = [];
+
+function fmDefaultTree() {
+  return {
+    name: 'Biggy',
+    type: 'folder',
+    children: [
+      { name: 'Documents', type: 'folder', children: [] },
+      { name: 'Pictures', type: 'folder', children: [] },
+      { name: 'readme.txt', type: 'file', mime: 'text/plain',
+        text: 'Welcome to the Biggy File Manager.\n\nMake folders, upload files, rename and delete them.\nEverything is saved in your browser.' }
+    ]
+  };
+}
+
+function fmLoadTree() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(FM_KEY));
+    if (saved && saved.type === 'folder' && Array.isArray(saved.children)) return saved;
+  } catch {}
+  return fmDefaultTree();
+}
+
+let fmTree = fmLoadTree();
+
+function fmSaveTree() {
+  try {
+    localStorage.setItem(FM_KEY, JSON.stringify(fmTree));
+  } catch {
+    alert("Out of space bro - the browser can't hold any more files. Delete something first.");
+  }
+}
+
+function fmCurrentFolder() {
+  let folder = fmTree;
+  for (const name of fmPath) {
+    const next = folder.children.find(c => c.name === name && c.type === 'folder');
+    if (!next) break;
+    folder = next;
+  }
+  return folder;
+}
+
+function fmUniqueName(folder, name) {
+  if (!folder.children.some(c => c.name === name)) return name;
+  const dot = name.lastIndexOf('.');
+  const base = dot > 0 ? name.slice(0, dot) : name;
+  const ext = dot > 0 ? name.slice(dot) : '';
+  let n = 2;
+  while (folder.children.some(c => c.name === `${base} ${n}${ext}`)) n++;
+  return `${base} ${n}${ext}`;
+}
+
+function fmFormatSize(entry) {
+  if (entry.type === 'folder') {
+    const n = entry.children.length;
+    return n === 1 ? '1 item' : `${n} items`;
+  }
+  const bytes = entry.text != null
+    ? new Blob([entry.text]).size
+    : Math.round(((entry.data || '').split(',')[1] || '').length * 0.75);
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function fmIconFor(entry) {
+  const mime = entry.mime || '';
+  let paths = '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8M8 17h6"/>';
+  if (entry.type === 'folder') paths = '<path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/>';
+  else if (mime.startsWith('image/')) paths = '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="1"/><path d="m3 17 6-6 4 4 3-3 5 5"/>';
+  else if (mime.startsWith('video/')) paths = '<rect x="3" y="5" width="13" height="14" rx="2"/><path d="m16 10 5-3v10l-5-3Z"/>';
+  else if (mime.startsWith('audio/')) paths = '<path d="M9 18V5l11-2v13M9 9l11-2"/><ellipse cx="6" cy="18" rx="3" ry="2"/><ellipse cx="17" cy="16" rx="3" ry="2"/>';
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + paths + '</svg>';
+}
+
+function fmRenderBreadcrumb() {
+  const bar = document.getElementById('fmBreadcrumb');
+  if (!bar) return;
+  bar.innerHTML = '';
+  ['Biggy', ...fmPath].forEach((name, i) => {
+    if (i > 0) {
+      const sep = document.createElement('span');
+      sep.className = 'fm-crumb-sep';
+      sep.textContent = '›';
+      bar.appendChild(sep);
+    }
+    const crumb = document.createElement('button');
+    crumb.className = 'fm-crumb';
+    crumb.textContent = name;
+    crumb.addEventListener('click', () => {
+      fmPath.length = i;
+      fmRender();
+    });
+    bar.appendChild(crumb);
+  });
+}
+
+function fmRenderPreview(entry) {
+  const panel = document.getElementById('fmPreview');
+  if (!panel) return;
+
+  if (!entry) {
+    panel.style.display = 'none';
+    panel.innerHTML = '';
+    return;
+  }
+
+  panel.style.display = 'block';
+  panel.innerHTML = '';
+
+  const head = document.createElement('div');
+  head.className = 'fm-preview-head';
+
+  const title = document.createElement('span');
+  title.textContent = entry.name;
+
+  const close = document.createElement('button');
+  close.className = 'fm-preview-close';
+  close.textContent = '✕';
+  close.title = 'Close preview';
+  close.addEventListener('click', () => fmRenderPreview(null));
+
+  head.append(title, close);
+  panel.appendChild(head);
+
+  const mime = entry.mime || '';
+  let body;
+
+  if (entry.text != null) {
+    body = document.createElement('textarea');
+    body.className = 'fm-preview-text';
+    body.value = entry.text;
+    body.addEventListener('input', () => {
+      entry.text = body.value;
+      fmSaveTree();
+    });
+  } else if (mime.startsWith('image/')) {
+    body = document.createElement('img');
+    body.className = 'fm-preview-media';
+    body.src = entry.data;
+    body.alt = entry.name;
+  } else if (mime.startsWith('video/')) {
+    body = document.createElement('video');
+    body.className = 'fm-preview-media';
+    body.src = entry.data;
+    body.controls = true;
+  } else if (mime.startsWith('audio/')) {
+    body = document.createElement('audio');
+    body.src = entry.data;
+    body.controls = true;
+  } else {
+    body = document.createElement('p');
+    body.className = 'fm-preview-none';
+    body.textContent = "Can't preview this one - download it instead.";
+  }
+
+  panel.appendChild(body);
+}
+
+function fmRender() {
+  const list = document.getElementById('fileList');
+  if (!list) return;
+
+  fmRenderBreadcrumb();
+  fmRenderPreview(null);
+
+  const upBtn = document.getElementById('fmUpBtn');
+  if (upBtn) upBtn.disabled = fmPath.length === 0;
+
+  const folder = fmCurrentFolder();
+  list.innerHTML = '';
+
+  if (!folder.children.length) {
+    const empty = document.createElement('li');
+    empty.className = 'fm-empty';
+    empty.textContent = 'Nothing in here yet.';
+    list.appendChild(empty);
+    return;
+  }
+
+  const sorted = [...folder.children].sort((a, b) =>
+    a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'folder' ? -1 : 1
+  );
+
+  sorted.forEach(entry => {
+    const row = document.createElement('li');
+    row.className = 'fm-row';
+
+    const icon = document.createElement('span');
+    icon.className = 'fm-icon';
+    icon.innerHTML = fmIconFor(entry);
+
+    const name = document.createElement('span');
+    name.className = 'fm-name';
+    name.textContent = entry.name;
+
+    const meta = document.createElement('span');
+    meta.className = 'fm-meta';
+    meta.textContent = fmFormatSize(entry);
+
+    const open = () => {
+      if (entry.type === 'folder') {
+        fmPath.push(entry.name);
+        fmRender();
+      } else {
+        fmRenderPreview(entry);
+      }
+    };
+
+    row.addEventListener('dblclick', open);
+    name.addEventListener('click', open);
+
+    const actions = document.createElement('span');
+    actions.className = 'fm-actions';
+
+    if (entry.type === 'file') {
+      const download = document.createElement('a');
+      download.className = 'fm-action';
+      download.textContent = '⤓';
+      download.title = 'Download';
+      download.download = entry.name;
+      download.href = entry.text != null
+        ? URL.createObjectURL(new Blob([entry.text], { type: entry.mime || 'text/plain' }))
+        : entry.data;
+      actions.appendChild(download);
+    }
+
+    const rename = document.createElement('button');
+    rename.className = 'fm-action';
+    rename.textContent = '✎';
+    rename.title = 'Rename';
+    rename.addEventListener('click', () => {
+      const next = prompt('Rename to:', entry.name);
+      if (!next || !next.trim() || next === entry.name) return;
+      entry.name = fmUniqueName(folder, next.trim());
+      fmSaveTree();
+      fmRender();
+    });
+
+    const del = document.createElement('button');
+    del.className = 'fm-action fm-action-danger';
+    del.textContent = '✕';
+    del.title = 'Delete';
+    del.addEventListener('click', () => {
+      const warning = entry.type === 'folder' && entry.children.length
+        ? `Delete "${entry.name}" and everything in it?`
+        : `Delete "${entry.name}"?`;
+      if (!confirm(warning)) return;
+      folder.children = folder.children.filter(c => c !== entry);
+      fmSaveTree();
+      fmRender();
+    });
+
+    actions.append(rename, del);
+    row.append(icon, name, meta, actions);
+    list.appendChild(row);
+  });
+}
+
+function fmInit() {
+  const list = document.getElementById('fileList');
+  if (!list) return;
+
+  document.getElementById('fmUpBtn').addEventListener('click', () => {
+    if (!fmPath.length) return;
+    fmPath.pop();
+    fmRender();
+  });
+
+  document.getElementById('newFolderBtn').addEventListener('click', () => {
+    const name = prompt('Folder name:', 'New Folder');
+    if (!name || !name.trim()) return;
+    const folder = fmCurrentFolder();
+    folder.children.push({
+      name: fmUniqueName(folder, name.trim()),
+      type: 'folder',
+      children: []
+    });
+    fmSaveTree();
+    fmRender();
+  });
+
+  document.getElementById('newFileBtn').addEventListener('click', () => {
+    const name = prompt('File name:', 'untitled.txt');
+    if (!name || !name.trim()) return;
+    const folder = fmCurrentFolder();
+    const entry = {
+      name: fmUniqueName(folder, name.trim()),
+      type: 'file',
+      mime: 'text/plain',
+      text: ''
+    };
+    folder.children.push(entry);
+    fmSaveTree();
+    fmRender();
+    fmRenderPreview(entry);
+  });
+
+  const input = document.getElementById('uploadFileInput');
+
+  document.getElementById('uploadFileBtn').addEventListener('click', () => input.click());
+
+  input.addEventListener('change', () => {
+    const folder = fmCurrentFolder();
+
+    Array.from(input.files).forEach(file => {
+      if (file.size > FM_MAX_UPLOAD) {
+        alert(`"${file.name}" is too chunky (max 1.5 MB) - browser storage is tiny.`);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        folder.children.push({
+          name: fmUniqueName(folder, file.name),
+          type: 'file',
+          mime: file.type || 'application/octet-stream',
+          data: reader.result
+        });
+        fmSaveTree();
+        fmRender();
+      };
+      reader.readAsDataURL(file);
+    });
+
+    input.value = '';
+  });
+
+  fmRender();
+}
+
+document.addEventListener('DOMContentLoaded', fmInit);
+
