@@ -1,17 +1,17 @@
 # BiggyOS
 
-A web-based desktop environment that runs in your browser 🐀🧀
+<img width="1793" height="889" alt="image" src="https://github.com/user-attachments/assets/a703ef61-5fd7-4e3b-ba44-c53912450e82" />
+
+
+A web-based desktop environment that runs in your browser 
 
 Built with HTML, CSS, and JavaScript
 
-![Uploading Screenshot 2026-09-06 at 8.00.46 PM.png…]()
 
 
 ## About
+I build Biggy OS which runs in your browser without download and is a static site. It is based off of the biggy cheese meme.
 
-BiggyOS is a fully client-side desktop environment that runs entirely in your browser. It features a windowing system, a modular app dock, a live analog/digital clock, a swappable background gallery, and a playful rat-and-cheese theme throughout — all rendered with plain HTML, CSS, and JavaScript.
-
-Everything is self-contained. No backend, no database, no build step required.
 
 ## Features
 
@@ -19,31 +19,14 @@ Everything is self-contained. No backend, no database, no build step required.
 - **Windowing system** — glassmorphism-styled windows that can be dragged around the screen and closed with macOS-style traffic light controls
 - **App Dock** — a bottom dock of app icons; each icon opens its corresponding window
 - **Boot sequence** — animated loading screen with a progress bar and a rotating set of loading jokes
-- **Status bar** — top bar displaying a random rat/cheese-themed joke on each page load
+- **Status bar** — top bar displaying a random biggy cheese joke on each page load
 - **Live clock widget** — canvas-drawn analog clock face with a synced digital time readout
 
-### Built-in Apps
-
-| App | Description |
-|---|---|
-| YouTube Player | Custom video window with play/pause, seek bar, mute, and a link to the associated YouTube channel |
-| Backgrounds | Gallery window for selecting a desktop background from a thumbnail grid, or removing it entirely |
 
 ### Modular by Design
-Both the dock and the Backgrounds app are driven by simple JavaScript data arrays rather than hardcoded markup:
-- **New dock app** — add one entry to the `apps` array (id, icon, color, action)
-- **New background** — drop an image into the project folder and add one entry to the `backgrounds` array
+* I built this os to be modular by design so that I wouldn't have to write extra code every time I wanted to make a new window.
+* It is now easy to make new windows
 
-No HTML editing or manual event-listener wiring required for either.
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Structure | HTML5 |
-| Styling | CSS3 (custom properties, glassmorphism, flexbox) |
-| Logic | Vanilla JavaScript (ES6) |
-| Rendering | DOM + CSS transforms for the clock hands |
 
 ## Architecture
 
@@ -59,39 +42,32 @@ No HTML editing or manual event-listener wiring required for either.
                       #   - boot sequence + status bar jokes
 ```
 
-## Getting Started
+## Fork my project!
 
-Since BiggyOS is a fully static site with no build tools or server-side code, you can run it directly:
+Since BiggyOS is a fully static site you can easily remix it!
 
 ```bash
-# Clone the repository
+
 git clone git@github.com:Logdegret/Biggy-chez.git
 cd Biggy-chez
 
-# Open directly in a browser
 open index.html
 ```
 
-Or serve it with any static file server, for example:
-
-```bash
-npx serve .
-```
 
 ## Deployment
 
-BiggyOS is a fully static site — no backend required.
+BiggyOS is a fully static site
 
-**GitHub Pages (recommended):**
+**GitHub Pages**
 1. Push to GitHub
 2. Go to Settings → Pages
 3. Set the source to your `main` branch
-4. Done — you get a live URL
-
-Other options: Netlify, Vercel, Cloudflare Pages — any static host works.
+4. Done
 
 ## Extending BiggyOS
 
+* You can add new apps/windows by using the template below
 **Add a new dock app** — edit `app.js`:
 ```javascript
 const apps = [
@@ -100,14 +76,6 @@ const apps = [
 ];
 ```
 
-**Add a new background** — edit `app.js`:
-```javascript
-const backgrounds = [
-  { id: "none", type: "none", label: "Remove Background" },
-  { id: "barnyard", type: "image", label: "Barnyard", file: "barnyard.jpg" },
-  { id: "moo", type: "image", label: "Moo", file: "moo.jpg" },
-];
-```
 
 ## Project Info
 
@@ -117,6 +85,3 @@ const backgrounds = [
 | GitHub | [Logdegret](https://github.com/Logdegret) |
 | Repository | [Biggy-Cheese-OS](https://github.com/Logdegret/Biggy-Cheese-OS) |
 
----
-
-BiggyOS — made with 🐀 and 🧀
